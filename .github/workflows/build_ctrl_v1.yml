@@ -26,8 +26,8 @@ jobs:
       - name: Build
         run: |
           export QMK_HOME=$PWD
-          make massdrop/ctrl:via
+          make massdrop/ctrl:isycat
       - uses: actions/upload-artifact@v4
         with:
-          name: massdrop_ctrl_via-${{ github.sha }}
-          path: massdrop_ctrl_via.bin
+          name: massdrop_ctrl_isycat-${{ github.sha }}
+          path: massdrop_ctrl_isycat.bin
