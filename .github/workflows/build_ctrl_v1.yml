@@ -1,0 +1,33 @@
+name: Build Drop CTRL v1 (massdrop/ctrl) VIA firmware
+
+# QMK 0.27.0 removed the arm_atsam platform, so this branch stays on 0.26.11.
+on:
+  push:
+    branches-ignore: [master, develop]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - name: Init needed submodules
+        run: git submodule update --init --depth 1 lib/printf lib/chibios lib/chibios-contrib
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install toolchain
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q gcc-arm-none-eabi binutils-arm-none-eabi libnewlib-arm-none-eabi
+          pip install -r requirements.txt qmk
+      - name: Build
+        run: |
+          export QMK_HOME=$PWD
+          make massdrop/ctrl:via
+      - uses: actions/upload-artifact@v4
+        with:
+          name: massdrop_ctrl_via-${{ github.sha }}
+          path: massdrop_ctrl_via.bin
