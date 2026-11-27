@@ -133,7 +133,7 @@ static void cfg_defaults(void) {
         // (PowerToys Command Palette shortcut; F23 is otherwise unused)
         .th_tap  = {LALT(KC_F23), KC_NO, KC_NO, KC_NO},
         .th_hold = {KC_LGUI, KC_NO, KC_NO, KC_NO},
-        .game_flags = GAME_F1 | GAME_BYPASS | GAME_LED | GAME_NUMLOCK,
+        .game_flags = GAME_F1 | GAME_LED | GAME_NUMLOCK,
         .f1_target  = LALT(KC_F23),
         .game_hue   = 85,
         .game_sat   = 255,

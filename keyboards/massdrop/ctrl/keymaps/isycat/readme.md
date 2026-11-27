@@ -51,7 +51,7 @@ Command Palette shortcut.
 ## Game mode
 
 F1 sends Alt+F23 (the PowerToys Command Palette; set the key in VIA) outside game mode and plain F1
-in game mode. Game mode can also turn off the nav remaps and Swedish letters, and it lights F1 (colour and brightness set in VIA).
+in game mode. Game mode can also turn off the nav remaps and Swedish letters (off by default), and it lights F1 (colour and brightness set in VIA).
 
 With "Follow host Num Lock" on (the default), game mode is simply the PC's Num Lock state. The AHK script
 switches Num Lock when the foreground window goes fullscreen or leaves it. It only reads the
