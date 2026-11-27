@@ -62,7 +62,7 @@
       "KC_N",
       "KC_M",
       "KC_LCTL",
-      "MT(MOD_LGUI,KC_F1)",
+      "CUSTOM(10)",
       "KC_LALT",
       "KC_SPC",
       "CUSTOM(8)",

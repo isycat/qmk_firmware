@@ -41,6 +41,9 @@ definition = {
         {"name": "Play / Next", "title": "Tap: Play/Pause. Double tap: Next track", "shortName": "PP_TD"},
         {"name": "AltGr SE", "title": "Right Alt with Swedish letters (see Tweaks menu)", "shortName": "AltGr SE"},
         {"name": "LED Zones", "title": "Cycle lighting zones: all, keys only, underglow only, off", "shortName": "LED Zone"},
+    ] + [
+        {"name": f"Tap/Hold {i}", "title": f"Tap/Hold {i}: tap and hold keycodes are set in Tweaks", "shortName": f"TH {i}"}
+        for i in range(1, 5)
     ],
     "menus": [
         {"label": "Lighting", "content": [
@@ -69,17 +72,23 @@ definition = {
             {"label": "Per-key colours", "content": [
                 toggle("Show painted key colours", "id_isycat_paint_on", 19),
                 {"label": "Brush", "type": "dropdown",
-                 "options": ["Clear (show effect)"] + [f"Colour {i}" for i in range(1, 16)],
+                 "options": ["Clear (show effect)"] + [f"Colour {i}" for i in range(1, 15)] + ["Colour 15 (default: off)"],
                  "content": ["id_isycat_paint_brush", 0, 17]},
                 toggle("Paint mode: press keys on the keyboard to paint them (no typing; ends after 1 min idle)",
                        "id_isycat_paint_mode", 16),
-                {"label": "Apply brush to", "type": "dropdown",
-                 "options": ["-", "Clear all keys", "All keys"],
-                 "content": ["id_isycat_paint_tools", 0, 20]},
+                {"label": "Clear all painted keys", "type": "button", "options": [1],
+                 "content": ["id_isycat_paint_clear", 0, 20]},
+                {"label": "Fill all keys with the brush", "type": "button", "options": [2],
+                 "content": ["id_isycat_paint_fill", 0, 20]},
             ]},
             {"label": "Colour palette", "content": [
-                {"label": f"Colour {i + 1}", "type": "color", "content": [f"id_isycat_palette_{i + 1}", 0, 21 + i]}
+                item
                 for i in range(15)
+                for item in (
+                    {"label": f"Colour {i + 1}", "type": "color", "content": [f"id_isycat_palette_{i + 1}", 0, 21 + i]},
+                    {"label": f"Colour {i + 1} brightness (0 = off)", "type": "range", "options": [0, 255],
+                     "content": [f"id_isycat_palette_val_{i + 1}", 0, 36 + i]},
+                )
             ]},
             {"label": "Scroll Lock indicator", "content": [
                 toggle("Show Scroll Lock on its key", "id_isycat_ind_enabled", 2),
@@ -100,6 +109,17 @@ definition = {
                 toggle("AltGr SE key + a / o / e = å / ö / ä", "id_isycat_swe_enabled", 6),
                 toggle("Also on a plain Right Alt key", "id_isycat_swe_plain_ralt", 11, swe_on),
                 toggle("Also with [ ; ' (å ö ä)", "id_isycat_swe_alt_keys", 12, swe_on),
+            ]},
+            {"label": "Tap/Hold keys", "content": [
+                item
+                for i in range(4)
+                for item in (
+                    {"label": f"Tap/Hold {i + 1}: on tap", "type": "keycode", "content": [f"id_isycat_th_tap_{i + 1}", 0, 51 + i]},
+                    {"label": f"Tap/Hold {i + 1}: while held", "type": "keycode", "content": [f"id_isycat_th_hold_{i + 1}", 0, 55 + i]},
+                )
+            ] + [
+                {"label": "Hold after (x10 ms)", "type": "range", "options": [5, 100],
+                 "content": ["id_isycat_th_term", 0, 59]},
             ]},
             {"label": "Play / Next key", "content": [
                 {"label": "Double-tap window (x10 ms)", "type": "range", "options": [10, 100],

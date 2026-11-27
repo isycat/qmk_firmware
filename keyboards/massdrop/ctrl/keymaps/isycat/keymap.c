@@ -24,6 +24,10 @@ enum ctrl_keycodes {
     CK_PPTD,            // Play/Pause on tap, Next track on double tap
     CK_SWALT,           // Right Alt with Swedish letters (å ä ö)
     CK_LZONE,           // Cycle lighting zones (all / keys / underglow / off)
+    CK_TH1,             // Tap/Hold 1..4: tap and hold keycodes set in VIA (Tweaks)
+    CK_TH2,
+    CK_TH3,
+    CK_TH4,
 };
 
 #include "layers.h"
@@ -34,10 +38,11 @@ enum ctrl_keycodes {
 
 #define KEY_LED_COUNT 87 // LEDs 0..86 sit under keys, 87..118 are underglow
 #define PALETTE_SIZE 15
+#define TH_COUNT 4
 
 enum lighting_zone { ZONE_ALL = 0, ZONE_KEYS, ZONE_UNDERGLOW, ZONE_OFF, ZONE_COUNT };
 
-typedef struct {
+typedef struct __attribute__((packed)) {
     uint8_t magic;
     uint8_t zone;         // enum lighting_zone
     uint8_t ind_enabled;  // Scroll Lock indicator on/off
@@ -52,9 +57,12 @@ typedef struct {
     uint8_t ug_sat;
     uint8_t ug_val;       // underglow brightness for its own modes
     uint8_t paint_on;     // show painted per-key colours
-    uint8_t reserved[2];
-    uint8_t palette[PALETTE_SIZE][2];     // hue, sat of brush colours 1..15
+    uint8_t th_term_10ms; // Tap/Hold keys: hold threshold in 10 ms units
+    uint8_t reserved;
+    uint8_t palette[PALETTE_SIZE][3];     // hue, sat, brightness of brush colours 1..15
     uint8_t keymap[(KEY_LED_COUNT + 1) / 2]; // 4 bits per key LED: 0 = effect, n = palette[n-1]
+    uint16_t th_tap[TH_COUNT];  // Tap/Hold keys: keycode sent on tap
+    uint16_t th_hold[TH_COUNT]; // Tap/Hold keys: keycode held on hold
 } user_config_t;
 
 _Static_assert(sizeof(user_config_t) == EECONFIG_USER_DATA_SIZE, "EECONFIG_USER_DATA_SIZE mismatch");
@@ -62,7 +70,7 @@ _Static_assert(sizeof(user_config_t) == EECONFIG_USER_DATA_SIZE, "EECONFIG_USER_
 _Static_assert(EECONFIG_SIZE + 4 + DYNAMIC_KEYMAP_LAYER_COUNT * MATRIX_ROWS * MATRIX_COLS * 2 + 128 <= EEPROM_SIZE,
                "Not enough EEPROM left for VIA macros");
 
-#define USER_CONFIG_MAGIC 0xC9
+#define USER_CONFIG_MAGIC 0xCA
 
 enum ug_mode { UG_FOLLOW = 0, UG_SOLID, UG_BREATHE, UG_RAINBOW, UG_OFF, UG_COUNT };
 
@@ -99,10 +107,17 @@ static void cfg_defaults(void) {
         .ug_sat       = 255,
         .ug_val       = 128,
         .paint_on     = 1,
+        .th_term_10ms = 20,
         .palette = {
-            {0, 255}, {21, 255}, {43, 255}, {64, 255}, {85, 255}, {106, 255}, {128, 255}, {149, 255},
-            {170, 255}, {191, 255}, {213, 255}, {234, 255}, {245, 128}, {0, 0}, {28, 96},
+            {0, 255, 255}, {21, 255, 255}, {43, 255, 255}, {64, 255, 255}, {85, 255, 255},
+            {106, 255, 255}, {128, 255, 255}, {149, 255, 255}, {170, 255, 255}, {191, 255, 255},
+            {213, 255, 255}, {234, 255, 255}, {0, 0, 255}, {28, 96, 255},
+            {0, 0, 0}, // colour 15: off
         },
+        // Tap/Hold 1 replaces MT(MOD_LGUI, KC_F1): hold = Win, tap = Alt+F23
+        // (PowerToys Command Palette shortcut; F23 is otherwise unused)
+        .th_tap  = {LALT(KC_F23), KC_NO, KC_NO, KC_NO},
+        .th_hold = {KC_LGUI, KC_NO, KC_NO, KC_NO},
     };
 }
 
@@ -209,7 +224,8 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
         }
         uint8_t c = cfg.paint_on || paint_mode ? key_color(i) : 0;
         if (c) {
-            RGB rgb = hsv_to_rgb((HSV){cfg.palette[c - 1][0], cfg.palette[c - 1][1], rgb_matrix_get_val()});
+            const uint8_t *pc  = cfg.palette[c - 1];
+            RGB            rgb = hsv_to_rgb((HSV){pc[0], pc[1], scale8(pc[2], rgb_matrix_get_val())});
             rgb_matrix_set_color(i, rgb.r, rgb.g, rgb.b);
         }
     }
@@ -446,6 +462,72 @@ static bool is_basic_mod(uint16_t keycode) {
 #define MODS_SHIFT (get_mods() & MOD_MASK_SHIFT)
 #define MODS_CTRL (get_mods() & MOD_MASK_CTRL)
 
+/* ------------------------------------------------------------------------- */
+/* Tap/Hold keys (configurable in VIA)                                       */
+/* ------------------------------------------------------------------------- */
+/* Like QMK mod-tap, but tap and hold can be any keycode VIA can pick,
+ * including modified ones such as Alt+F5. Hold wins when the key is held past
+ * the threshold or another key is pressed while it is down. */
+
+enum th_state { TH_IDLE = 0, TH_UNDECIDED, TH_HOLDING };
+
+static uint8_t  th_active = 0xFF; // slot currently down, 0xFF = none
+static uint8_t  th_state;
+static uint16_t th_timer;
+
+static void th_hold_press(uint16_t kc) {
+    if (IS_QK_MOMENTARY(kc)) {
+        layer_on(QK_MOMENTARY_GET_LAYER(kc));
+    } else if (kc != KC_NO) {
+        register_code16(kc);
+    }
+}
+
+static void th_hold_release(uint16_t kc) {
+    if (IS_QK_MOMENTARY(kc)) {
+        layer_off(QK_MOMENTARY_GET_LAYER(kc));
+    } else if (kc != KC_NO) {
+        unregister_code16(kc);
+    }
+}
+
+static void th_go_hold(void) {
+    if (th_active < TH_COUNT && th_state == TH_UNDECIDED) {
+        th_state = TH_HOLDING;
+        th_hold_press(cfg.th_hold[th_active]);
+    }
+}
+
+static void th_task(void) {
+    if (th_state == TH_UNDECIDED && timer_elapsed(th_timer) >= (uint16_t)cfg.th_term_10ms * 10) th_go_hold();
+}
+
+// Returns false if the event was a Tap/Hold key and has been handled.
+static bool th_process(uint16_t keycode, keyrecord_t *record) {
+    bool is_th = keycode >= CK_TH1 && keycode <= CK_TH4;
+    if (!is_th) {
+        if (record->event.pressed && th_state == TH_UNDECIDED) th_go_hold();
+        return true;
+    }
+    uint8_t slot = keycode - CK_TH1;
+    if (record->event.pressed) {
+        if (th_state == TH_UNDECIDED) th_go_hold(); // another Tap/Hold key interrupts
+        th_active = slot;
+        th_state  = TH_UNDECIDED;
+        th_timer  = timer_read();
+    } else if (slot == th_active) {
+        if (th_state == TH_UNDECIDED) {
+            uint16_t tap = cfg.th_tap[slot];
+            if (tap != KC_NO) tap_code16(tap);
+        } else if (th_state == TH_HOLDING) {
+            th_hold_release(cfg.th_hold[slot]);
+        }
+        th_active = 0xFF;
+        th_state  = TH_IDLE;
+    }
+    return false;
+}
+
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     static uint32_t boot_timer;
     bool            pressed = record->event.pressed;
@@ -467,6 +549,8 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (!pressed && is_basic_mod(keycode)) {
         nav_suppressed &= ~MOD_BIT(keycode);
     }
+
+    if (!th_process(keycode, record)) return false;
 
     // --- Right Alt / Swedish letters -------------------------------------
     // A plain Right Alt in the keymap gets the same treatment, so the feature
@@ -558,6 +642,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
 void housekeeping_task_user(void) {
     pp_task();
+    th_task();
     paint_task();
 }
 
@@ -596,7 +681,11 @@ enum via_isycat_value {
     id_paint_tools,
 };
 
-#define id_palette_first 21 // ids 21..35 = palette colours 1..15
+#define id_palette_first 21      // ids 21..35 = palette colours 1..15 (hue, sat)
+#define id_palette_val_first 36  // ids 36..50 = palette brightness 1..15
+#define id_th_tap_first 51       // ids 51..54 = Tap/Hold tap keycodes
+#define id_th_hold_first 55      // ids 55..58 = Tap/Hold hold keycodes
+#define id_th_term 59
 
 enum paint_tool { TOOL_NONE = 0, TOOL_CLEAR_ALL, TOOL_FILL_ALL };
 
@@ -641,6 +730,18 @@ static void isycat_get(uint8_t id, uint8_t *v) {
             break;
         case id_paint_on: v[0] = cfg.paint_on; break;
         case id_paint_tools: v[0] = TOOL_NONE; break;
+        case id_palette_val_first ... id_palette_val_first + PALETTE_SIZE - 1:
+            v[0] = cfg.palette[id - id_palette_val_first][2];
+            break;
+        case id_th_tap_first ... id_th_tap_first + TH_COUNT - 1:
+            v[0] = cfg.th_tap[id - id_th_tap_first] >> 8;
+            v[1] = cfg.th_tap[id - id_th_tap_first] & 0xFF;
+            break;
+        case id_th_hold_first ... id_th_hold_first + TH_COUNT - 1:
+            v[0] = cfg.th_hold[id - id_th_hold_first] >> 8;
+            v[1] = cfg.th_hold[id - id_th_hold_first] & 0xFF;
+            break;
+        case id_th_term: v[0] = cfg.th_term_10ms; break;
         case id_palette_first ... id_palette_first + PALETTE_SIZE - 1:
             v[0] = cfg.palette[id - id_palette_first][0];
             v[1] = cfg.palette[id - id_palette_first][1];
@@ -680,7 +781,18 @@ static void isycat_set(uint8_t id, uint8_t *v) {
         case id_paint_tools:
             if (v[0] == TOOL_CLEAR_ALL) paint_all(0);
             if (v[0] == TOOL_FILL_ALL) paint_all(paint_brush);
+            cfg_save();
             break;
+        case id_palette_val_first ... id_palette_val_first + PALETTE_SIZE - 1:
+            cfg.palette[id - id_palette_val_first][2] = v[0];
+            break;
+        case id_th_tap_first ... id_th_tap_first + TH_COUNT - 1:
+            cfg.th_tap[id - id_th_tap_first] = (v[0] << 8) | v[1];
+            break;
+        case id_th_hold_first ... id_th_hold_first + TH_COUNT - 1:
+            cfg.th_hold[id - id_th_hold_first] = (v[0] << 8) | v[1];
+            break;
+        case id_th_term: cfg.th_term_10ms = v[0] < 5 ? 5 : v[0]; break;
         case id_palette_first ... id_palette_first + PALETTE_SIZE - 1:
             cfg.palette[id - id_palette_first][0] = v[0];
             cfg.palette[id - id_palette_first][1] = v[1];

@@ -59,6 +59,26 @@
       "name": "LED Zones",
       "title": "Cycle lighting zones: all, keys only, underglow only, off",
       "shortName": "LED Zone"
+    },
+    {
+      "name": "Tap/Hold 1",
+      "title": "Tap/Hold 1: tap and hold keycodes are set in Tweaks",
+      "shortName": "TH 1"
+    },
+    {
+      "name": "Tap/Hold 2",
+      "title": "Tap/Hold 2: tap and hold keycodes are set in Tweaks",
+      "shortName": "TH 2"
+    },
+    {
+      "name": "Tap/Hold 3",
+      "title": "Tap/Hold 3: tap and hold keycodes are set in Tweaks",
+      "shortName": "TH 3"
+    },
+    {
+      "name": "Tap/Hold 4",
+      "title": "Tap/Hold 4: tap and hold keycodes are set in Tweaks",
+      "shortName": "TH 4"
     }
   ],
   "menus": [
@@ -389,7 +409,7 @@
                 "Colour 12",
                 "Colour 13",
                 "Colour 14",
-                "Colour 15"
+                "Colour 15 (default: off)"
               ],
               "content": [
                 "id_isycat_paint_brush",
@@ -407,15 +427,25 @@
               ]
             },
             {
-              "label": "Apply brush to",
-              "type": "dropdown",
+              "label": "Clear all painted keys",
+              "type": "button",
               "options": [
-                "-",
-                "Clear all keys",
-                "All keys"
+                1
               ],
               "content": [
-                "id_isycat_paint_tools",
+                "id_isycat_paint_clear",
+                0,
+                20
+              ]
+            },
+            {
+              "label": "Fill all keys with the brush",
+              "type": "button",
+              "options": [
+                2
+              ],
+              "content": [
+                "id_isycat_paint_fill",
                 0,
                 20
               ]
@@ -435,12 +465,38 @@
               ]
             },
             {
+              "label": "Colour 1 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_1",
+                0,
+                36
+              ]
+            },
+            {
               "label": "Colour 2",
               "type": "color",
               "content": [
                 "id_isycat_palette_2",
                 0,
                 22
+              ]
+            },
+            {
+              "label": "Colour 2 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_2",
+                0,
+                37
               ]
             },
             {
@@ -453,12 +509,38 @@
               ]
             },
             {
+              "label": "Colour 3 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_3",
+                0,
+                38
+              ]
+            },
+            {
               "label": "Colour 4",
               "type": "color",
               "content": [
                 "id_isycat_palette_4",
                 0,
                 24
+              ]
+            },
+            {
+              "label": "Colour 4 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_4",
+                0,
+                39
               ]
             },
             {
@@ -471,12 +553,38 @@
               ]
             },
             {
+              "label": "Colour 5 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_5",
+                0,
+                40
+              ]
+            },
+            {
               "label": "Colour 6",
               "type": "color",
               "content": [
                 "id_isycat_palette_6",
                 0,
                 26
+              ]
+            },
+            {
+              "label": "Colour 6 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_6",
+                0,
+                41
               ]
             },
             {
@@ -489,12 +597,38 @@
               ]
             },
             {
+              "label": "Colour 7 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_7",
+                0,
+                42
+              ]
+            },
+            {
               "label": "Colour 8",
               "type": "color",
               "content": [
                 "id_isycat_palette_8",
                 0,
                 28
+              ]
+            },
+            {
+              "label": "Colour 8 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_8",
+                0,
+                43
               ]
             },
             {
@@ -507,12 +641,38 @@
               ]
             },
             {
+              "label": "Colour 9 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_9",
+                0,
+                44
+              ]
+            },
+            {
               "label": "Colour 10",
               "type": "color",
               "content": [
                 "id_isycat_palette_10",
                 0,
                 30
+              ]
+            },
+            {
+              "label": "Colour 10 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_10",
+                0,
+                45
               ]
             },
             {
@@ -525,12 +685,38 @@
               ]
             },
             {
+              "label": "Colour 11 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_11",
+                0,
+                46
+              ]
+            },
+            {
               "label": "Colour 12",
               "type": "color",
               "content": [
                 "id_isycat_palette_12",
                 0,
                 32
+              ]
+            },
+            {
+              "label": "Colour 12 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_12",
+                0,
+                47
               ]
             },
             {
@@ -543,6 +729,19 @@
               ]
             },
             {
+              "label": "Colour 13 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_13",
+                0,
+                48
+              ]
+            },
+            {
               "label": "Colour 14",
               "type": "color",
               "content": [
@@ -552,12 +751,38 @@
               ]
             },
             {
+              "label": "Colour 14 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_14",
+                0,
+                49
+              ]
+            },
+            {
               "label": "Colour 15",
               "type": "color",
               "content": [
                 "id_isycat_palette_15",
                 0,
                 35
+              ]
+            },
+            {
+              "label": "Colour 15 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_15",
+                0,
+                50
               ]
             }
           ]
@@ -676,6 +901,96 @@
                 "id_isycat_swe_alt_keys",
                 0,
                 12
+              ]
+            }
+          ]
+        },
+        {
+          "label": "Tap/Hold keys",
+          "content": [
+            {
+              "label": "Tap/Hold 1: on tap",
+              "type": "keycode",
+              "content": [
+                "id_isycat_th_tap_1",
+                0,
+                51
+              ]
+            },
+            {
+              "label": "Tap/Hold 1: while held",
+              "type": "keycode",
+              "content": [
+                "id_isycat_th_hold_1",
+                0,
+                55
+              ]
+            },
+            {
+              "label": "Tap/Hold 2: on tap",
+              "type": "keycode",
+              "content": [
+                "id_isycat_th_tap_2",
+                0,
+                52
+              ]
+            },
+            {
+              "label": "Tap/Hold 2: while held",
+              "type": "keycode",
+              "content": [
+                "id_isycat_th_hold_2",
+                0,
+                56
+              ]
+            },
+            {
+              "label": "Tap/Hold 3: on tap",
+              "type": "keycode",
+              "content": [
+                "id_isycat_th_tap_3",
+                0,
+                53
+              ]
+            },
+            {
+              "label": "Tap/Hold 3: while held",
+              "type": "keycode",
+              "content": [
+                "id_isycat_th_hold_3",
+                0,
+                57
+              ]
+            },
+            {
+              "label": "Tap/Hold 4: on tap",
+              "type": "keycode",
+              "content": [
+                "id_isycat_th_tap_4",
+                0,
+                54
+              ]
+            },
+            {
+              "label": "Tap/Hold 4: while held",
+              "type": "keycode",
+              "content": [
+                "id_isycat_th_hold_4",
+                0,
+                58
+              ]
+            },
+            {
+              "label": "Hold after (x10 ms)",
+              "type": "range",
+              "options": [
+                5,
+                100
+              ],
+              "content": [
+                "id_isycat_th_term",
+                0,
+                59
               ]
             }
           ]
