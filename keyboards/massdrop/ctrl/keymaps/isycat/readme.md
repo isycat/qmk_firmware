@@ -51,7 +51,7 @@ Command Palette shortcut.
 ## Game mode
 
 F1 sends Alt+F23 (the PowerToys Command Palette; set the key in VIA) outside game mode and plain F1
-in game mode. Game mode can also turn off the nav remaps and Swedish letters, and it lights F1 green.
+in game mode. Game mode can also turn off the nav remaps and Swedish letters, and it lights F1 (colour and brightness set in VIA).
 
 With "Follow host Num Lock" on (the default), game mode is simply the PC's Num Lock state. The AHK script
 switches Num Lock when the foreground window goes fullscreen or leaves it. It only reads the
@@ -67,7 +67,7 @@ Definition". It adds:
 * Lighting → Backlight: zones, brightness, effect (the exact effects in this build), speed, colour
 * Lighting → Scroll Lock indicator: on/off, colour, brightness
 * Tweaks: each navigation remap on/off separately, Swedish letters on/off (plus plain Right Alt and [ ; ' options), Play/Next double-tap window
-* Tweaks → Game mode: on/off, Num Lock sync, F1 key, remap bypass, F1 LED
+* Tweaks → Game mode: on/off, Num Lock sync, F1 key, remap bypass, F1 light colour and brightness
 * Custom keycodes `PP_TD`, `AltGr SE`, `LED Zone`, `TH 1-4` and `Game` in the Custom tab
 
 `via/drop_ctrl_v1_isycat.layout.json` is your April 2025 layout with Pause and Right Alt switched to

@@ -130,7 +130,11 @@ definition = {
                 {"showIf": "{id_isycat_game_f1} == 1", "label": "F1 outside game mode", "type": "keycode",
                  "content": ["id_isycat_game_f1_target", 0, 62]},
                 toggle("Game mode turns off nav remaps and Swedish letters", "id_isycat_game_bypass", 63),
-                toggle("Light F1 green in game mode", "id_isycat_game_led", 64),
+                toggle("Light up F1 in game mode", "id_isycat_game_led", 64),
+                {"showIf": "{id_isycat_game_led} == 1", "label": "F1 light colour", "type": "color",
+                 "content": ["id_isycat_game_color", 0, 66]},
+                {"showIf": "{id_isycat_game_led} == 1", "label": "F1 light brightness", "type": "range", "options": [0, 255],
+                 "content": ["id_isycat_game_brightness", 0, 67]},
             ]},
             {"label": "Play / Next key", "content": [
                 {"label": "Double-tap window (x10 ms)", "type": "range", "options": [10, 100],

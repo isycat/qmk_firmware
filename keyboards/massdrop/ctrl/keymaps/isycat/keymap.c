@@ -72,7 +72,11 @@ typedef struct __attribute__((packed)) {
     uint16_t th_tap[TH_COUNT];  // Tap/Hold keys: keycode sent on tap
     uint16_t th_hold[TH_COUNT]; // Tap/Hold keys: keycode held on hold
     uint16_t f1_target;         // what F1 sends outside game mode
-    uint8_t  future[37];        // headroom so later settings don't move VIA's data
+    uint8_t  game_hue;          // game mode F1 LED colour
+    uint8_t  game_sat;
+    uint8_t  game_val;          // game mode F1 LED brightness
+    uint8_t  ext_ver;           // 1 once the fields above have defaults
+    uint8_t  future[33];        // headroom so later settings don't move VIA's data
 } user_config_t;
 
 _Static_assert(sizeof(user_config_t) == EECONFIG_USER_DATA_SIZE, "EECONFIG_USER_DATA_SIZE mismatch");
@@ -131,6 +135,10 @@ static void cfg_defaults(void) {
         .th_hold = {KC_LGUI, KC_NO, KC_NO, KC_NO},
         .game_flags = GAME_F1 | GAME_BYPASS | GAME_LED | GAME_NUMLOCK,
         .f1_target  = LALT(KC_F23),
+        .game_hue   = 85,
+        .game_sat   = 255,
+        .game_val   = 255,
+        .ext_ver    = 1,
     };
 }
 
@@ -270,7 +278,8 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
         }
     }
     if (game_mode && (cfg.game_flags & GAME_LED)) {
-        RGB_MATRIX_INDICATOR_SET_COLOR(GAME_LED_INDEX, 0, 255, 0);
+        RGB rgb = hsv_to_rgb((HSV){cfg.game_hue, cfg.game_sat, cfg.game_val});
+        RGB_MATRIX_INDICATOR_SET_COLOR(GAME_LED_INDEX, rgb.r, rgb.g, rgb.b);
     }
     if (cfg.ind_enabled && host_keyboard_led_state().scroll_lock) {
         RGB rgb = hsv_to_rgb((HSV){cfg.ind_hue, cfg.ind_sat, cfg.ind_val});
@@ -769,6 +778,13 @@ void keyboard_post_init_user(void) {
     if (!eeconfig_is_user_datablock_valid() || cfg.magic != USER_CONFIG_MAGIC) {
         eeconfig_init_user();
     }
+    if (cfg.ext_ver != 1) { // v9 saved these bytes as zero
+        cfg.game_hue = 85;
+        cfg.game_sat = 255;
+        cfg.game_val = 255;
+        cfg.ext_ver  = 1;
+        cfg_save();
+    }
     zone_apply();
 }
 
@@ -810,6 +826,8 @@ enum via_isycat_value {
 #define id_game_bypass 63
 #define id_game_led 64
 #define id_game_numlock 65
+#define id_game_color 66
+#define id_game_brightness 67
 
 enum paint_tool { TOOL_NONE = 0, TOOL_CLEAR_ALL, TOOL_FILL_ALL };
 
@@ -872,6 +890,8 @@ static void isycat_get(uint8_t id, uint8_t *v) {
         case id_game_bypass: v[0] = flag_get(cfg.game_flags, GAME_BYPASS); break;
         case id_game_led: v[0] = flag_get(cfg.game_flags, GAME_LED); break;
         case id_game_numlock: v[0] = flag_get(cfg.game_flags, GAME_NUMLOCK); break;
+        case id_game_color: v[0] = cfg.game_hue; v[1] = cfg.game_sat; break;
+        case id_game_brightness: v[0] = cfg.game_val; break;
         case id_palette_first ... id_palette_first + PALETTE_SIZE - 1:
             v[0] = cfg.palette[id - id_palette_first][0];
             v[1] = cfg.palette[id - id_palette_first][1];
@@ -931,6 +951,8 @@ static void isycat_set(uint8_t id, uint8_t *v) {
         case id_game_bypass: flag_set(&cfg.game_flags, GAME_BYPASS, v[0]); break;
         case id_game_led: flag_set(&cfg.game_flags, GAME_LED, v[0]); break;
         case id_game_numlock: flag_set(&cfg.game_flags, GAME_NUMLOCK, v[0]); break;
+        case id_game_color: cfg.game_hue = v[0]; cfg.game_sat = v[1]; break;
+        case id_game_brightness: cfg.game_val = v[0]; break;
         case id_palette_first ... id_palette_first + PALETTE_SIZE - 1:
             cfg.palette[id - id_palette_first][0] = v[0];
             cfg.palette[id - id_palette_first][1] = v[1];

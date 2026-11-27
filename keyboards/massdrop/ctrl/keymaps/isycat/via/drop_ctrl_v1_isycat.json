@@ -1050,12 +1050,36 @@
               ]
             },
             {
-              "label": "Light F1 green in game mode",
+              "label": "Light up F1 in game mode",
               "type": "toggle",
               "content": [
                 "id_isycat_game_led",
                 0,
                 64
+              ]
+            },
+            {
+              "showIf": "{id_isycat_game_led} == 1",
+              "label": "F1 light colour",
+              "type": "color",
+              "content": [
+                "id_isycat_game_color",
+                0,
+                66
+              ]
+            },
+            {
+              "showIf": "{id_isycat_game_led} == 1",
+              "label": "F1 light brightness",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_game_brightness",
+                0,
+                67
               ]
             }
           ]
