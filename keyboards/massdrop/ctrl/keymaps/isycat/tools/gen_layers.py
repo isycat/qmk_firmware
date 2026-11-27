@@ -4,7 +4,7 @@ src, out = sys.argv[1], sys.argv[2]
 d = json.load(open(src))
 REN = {"KC_SLCK": "KC_SCRL", "MAGIC_TOGGLE_NKRO": "NK_TOGG"}
 # Firmware-specific replacements on the base layer: (layer,row,col) -> keycode
-OVR = {(0, 6, 7): "CK_PPTD", (0, 5, 4): "CK_SWALT", (0, 5, 1): "CK_TH1"}
+OVR = {(0, 6, 7): "CK_PPTD", (0, 5, 4): "CK_SWALT", (0, 5, 1): "CK_TH1", (1, 3, 5): "CK_GAME"}
 def conv(k):
     k = REN.get(k, k)
     k = re.sub(r"CUSTOM\((\d+)\)", lambda m: f"QK_KB_{m.group(1)}", k)

@@ -18,7 +18,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         {    KC_TRNS,    KC_TRNS,    KC_TRNS,    KC_TRNS,    KC_TRNS,    KC_TRNS,    KC_TRNS,    KC_TRNS },
         {    KC_TRNS,    KC_TRNS,    KC_TRNS,    KC_TRNS,    KC_TRNS,    KC_TRNS,    KC_TRNS,    KC_TRNS },
         {    KC_TRNS,    RGB_SPD,    RGB_VAI,    RGB_SPI,    RGB_HUI,    RGB_SAI,    KC_TRNS,    QK_KB_0 },
-        {    KC_TRNS,   RGB_RMOD,    RGB_VAD,    RGB_MOD,    RGB_HUD,    RGB_SAD,    KC_TRNS,    KC_TRNS },
+        {    KC_TRNS,   RGB_RMOD,    RGB_VAD,    RGB_MOD,    RGB_HUD,    CK_GAME,    KC_TRNS,    KC_TRNS },
         {    KC_TRNS,    RGB_TOG,    KC_TRNS,    KC_TRNS,    KC_TRNS,    QK_KB_6,    NK_TOGG,    QK_KB_2 },
         {    KC_TRNS,    KC_TRNS,    KC_TRNS,    KC_TRNS,    KC_TRNS,    KC_TRNS,    KC_TRNS,    KC_TRNS },
         {    KC_TRNS,    KC_TRNS,    KC_TRNS,    KC_TRNS,    KC_TRNS,    KC_MUTE,    KC_TRNS,    KC_TRNS },

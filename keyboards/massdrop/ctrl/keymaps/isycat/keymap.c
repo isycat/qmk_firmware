@@ -28,6 +28,7 @@ enum ctrl_keycodes {
     CK_TH2,
     CK_TH3,
     CK_TH4,
+    CK_GAME,            // Toggle game mode (F1 stays F1, optional remap bypass)
 };
 
 #include "layers.h"
@@ -39,6 +40,13 @@ enum ctrl_keycodes {
 #define KEY_LED_COUNT 87 // LEDs 0..86 sit under keys, 87..118 are underglow
 #define PALETTE_SIZE 15
 #define TH_COUNT 4
+
+enum game_flag {
+    GAME_F1     = 1 << 0, // F1 sends f1_target outside game mode
+    GAME_BYPASS = 1 << 1, // game mode switches off nav remaps and Swedish letters
+    GAME_LED    = 1 << 2, // show game mode on the F1 key LED
+    GAME_NUMLOCK = 1 << 3, // game mode follows the host's Num Lock (set by AHK)
+};
 
 enum lighting_zone { ZONE_ALL = 0, ZONE_KEYS, ZONE_UNDERGLOW, ZONE_OFF, ZONE_COUNT };
 
@@ -58,16 +66,18 @@ typedef struct __attribute__((packed)) {
     uint8_t ug_val;       // underglow brightness for its own modes
     uint8_t paint_on;     // show painted per-key colours
     uint8_t th_term_10ms; // Tap/Hold keys: hold threshold in 10 ms units
-    uint8_t reserved;
+    uint8_t game_flags;   // GAME_* bits
     uint8_t palette[PALETTE_SIZE][3];     // hue, sat, brightness of brush colours 1..15
     uint8_t keymap[(KEY_LED_COUNT + 1) / 2]; // 4 bits per key LED: 0 = effect, n = palette[n-1]
     uint16_t th_tap[TH_COUNT];  // Tap/Hold keys: keycode sent on tap
     uint16_t th_hold[TH_COUNT]; // Tap/Hold keys: keycode held on hold
+    uint16_t f1_target;         // what F1 sends outside game mode
+    uint8_t  future[37];        // headroom so later settings don't move VIA's data
 } user_config_t;
 
 _Static_assert(sizeof(user_config_t) == EECONFIG_USER_DATA_SIZE, "EECONFIG_USER_DATA_SIZE mismatch");
-// EEPROM budget: settings + VIA header (4) + 4 layers of keymap must leave room for VIA macros.
-_Static_assert(EECONFIG_SIZE + 4 + DYNAMIC_KEYMAP_LAYER_COUNT * MATRIX_ROWS * MATRIX_COLS * 2 + 128 <= EEPROM_SIZE,
+// EEPROM budget: settings + VIA header (4) + 4 layers of keymap must leave >= 96 bytes for VIA macros.
+_Static_assert(EECONFIG_SIZE + 4 + DYNAMIC_KEYMAP_LAYER_COUNT * MATRIX_ROWS * MATRIX_COLS * 2 + 96 <= EEPROM_SIZE,
                "Not enough EEPROM left for VIA macros");
 
 #define USER_CONFIG_MAGIC 0xCA
@@ -90,6 +100,7 @@ enum swe_flag {
 };
 
 static user_config_t cfg;
+static bool          game_mode; // see Game mode section
 
 static void cfg_defaults(void) {
     cfg = (user_config_t){
@@ -118,6 +129,8 @@ static void cfg_defaults(void) {
         // (PowerToys Command Palette shortcut; F23 is otherwise unused)
         .th_tap  = {LALT(KC_F23), KC_NO, KC_NO, KC_NO},
         .th_hold = {KC_LGUI, KC_NO, KC_NO, KC_NO},
+        .game_flags = GAME_F1 | GAME_BYPASS | GAME_LED | GAME_NUMLOCK,
+        .f1_target  = LALT(KC_F23),
     };
 }
 
@@ -128,7 +141,33 @@ static void cfg_save(void) {
 // Moving the settings block moves VIA's data too. If our settings are not valid
 // (first boot or a layout change), make VIA reload the built-in keymap as well
 // rather than reading shifted bytes.
+// v7/v8 used a 121-byte settings block. Grow it in place and slide VIA's data
+// (magic, layout options, keymap, macros) up behind it, so neither the
+// settings nor the VIA keymap are lost.
+#define OLD_USER_DATA_SIZE 121
+
+static void migrate_from_121(void) {
+    if (eeprom_read_dword(EECONFIG_USER) != OLD_USER_DATA_SIZE) return;
+    uint8_t *block = EECONFIG_USER_DATABLOCK;
+    if (eeprom_read_byte(block) != USER_CONFIG_MAGIC) return;
+
+    uint16_t old_via = (uint16_t)(uintptr_t)block + OLD_USER_DATA_SIZE;
+    uint16_t new_via = (uint16_t)(uintptr_t)block + EECONFIG_USER_DATA_SIZE;
+    for (uint16_t i = EEPROM_SIZE - new_via; i-- > 0;) {
+        eeprom_update_byte((uint8_t *)(uintptr_t)(new_via + i), eeprom_read_byte((uint8_t *)(uintptr_t)(old_via + i)));
+    }
+
+    user_config_t fresh;
+    cfg_defaults();
+    fresh = cfg;
+    eeprom_read_block(&cfg, block, OLD_USER_DATA_SIZE);
+    memcpy((uint8_t *)&cfg + OLD_USER_DATA_SIZE, (uint8_t *)&fresh + OLD_USER_DATA_SIZE, sizeof(cfg) - OLD_USER_DATA_SIZE);
+    cfg.game_flags = fresh.game_flags; // was an unused byte in the 121-byte layout
+    cfg_save(); // also writes the new version (size) marker
+}
+
 void via_init_kb(void) {
+    migrate_from_121();
     user_config_t probe;
     eeconfig_read_user_datablock(&probe);
     if (!eeconfig_is_user_datablock_valid() || probe.magic != USER_CONFIG_MAGIC) {
@@ -146,6 +185,7 @@ void eeconfig_init_user(void) {
 /* ------------------------------------------------------------------------- */
 
 #define SCROLL_LOCK_LED 14 // g_led_config matrix [6][6]
+#define GAME_LED_INDEX 1   // F1
 
 // The VIA definition (via/drop_ctrl_v1_isycat.json) lists effects by index.
 _Static_assert(RGB_MATRIX_EFFECT_MAX == 45, "RGB effect list changed: update the VIA definition JSON");
@@ -229,6 +269,9 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
             rgb_matrix_set_color(i, 0, 0, 0);
         }
     }
+    if (game_mode && (cfg.game_flags & GAME_LED)) {
+        RGB_MATRIX_INDICATOR_SET_COLOR(GAME_LED_INDEX, 0, 255, 0);
+    }
     if (cfg.ind_enabled && host_keyboard_led_state().scroll_lock) {
         RGB rgb = hsv_to_rgb((HSV){cfg.ind_hue, cfg.ind_sat, cfg.ind_val});
         RGB_MATRIX_INDICATOR_SET_COLOR(SCROLL_LOCK_LED, rgb.r, rgb.g, rgb.b);
@@ -273,7 +316,10 @@ static bool    swalt_held;
 static bool    swalt_sent;
 static uint8_t swe_swallowed; // bit per letter key whose release must be swallowed
 
+static uint16_t numlock_quiet_timer; // Num Lock sync ignores the host for a moment after an Alt code
+
 static void send_alt_code(const char *digits) {
+    numlock_quiet_timer = timer_read() | 1;
     uint8_t saved = get_mods();
     uint8_t weak  = get_weak_mods();
     clear_mods();
@@ -290,6 +336,7 @@ static void send_alt_code(const char *digits) {
     unregister_code(KC_LALT);
 
     if (numlock_off) tap_code(KC_NUM);
+    numlock_quiet_timer = timer_read() | 1;
 
     set_mods(saved);
     set_weak_mods(weak);
@@ -528,6 +575,43 @@ static bool th_process(uint16_t keycode, keyrecord_t *record) {
     return false;
 }
 
+/* ------------------------------------------------------------------------- */
+/* Game mode + F1 remap                                                      */
+/* ------------------------------------------------------------------------- */
+/* Game mode is not saved: it is switched by the Game key, VIA, or the
+ * host's Num Lock state, which a timer in the AHK script sets. */
+
+static uint16_t f1_sent; // keycode registered by the current F1 press
+
+static bool remaps_active(void) {
+    return !(game_mode && (cfg.game_flags & GAME_BYPASS));
+}
+
+static void game_mode_set(bool on) {
+    game_mode = on;
+    if (!remaps_active()) nav_restore();
+}
+
+// With Num Lock sync on, the host's Num Lock is the game mode switch, so AHK
+// can set it with SetNumLockState and the Game key just toggles Num Lock.
+static void game_mode_toggle(void) {
+    if (cfg.game_flags & GAME_NUMLOCK) {
+        tap_code(KC_NUM);
+    } else {
+        game_mode_set(!game_mode);
+    }
+}
+
+static void numlock_sync_task(void) {
+    if (!(cfg.game_flags & GAME_NUMLOCK)) return;
+    if (numlock_quiet_timer) {
+        if (timer_elapsed(numlock_quiet_timer) < 400) return;
+        numlock_quiet_timer = 0;
+    }
+    bool num = host_keyboard_led_state().num_lock;
+    if (num != game_mode) game_mode_set(num);
+}
+
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     static uint32_t boot_timer;
     bool            pressed = record->event.pressed;
@@ -551,6 +635,38 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     }
 
     if (!th_process(keycode, record)) return false;
+
+    if (keycode == CK_GAME) {
+        if (pressed) game_mode_toggle();
+        return false;
+    }
+
+    // F1 -> Alt+F23 (or whatever is set in VIA) outside game mode
+    if (keycode == KC_F1) {
+        if (pressed && (cfg.game_flags & GAME_F1) && !game_mode && cfg.f1_target != KC_NO) {
+            f1_sent = cfg.f1_target;
+            register_code16(f1_sent);
+            return false;
+        }
+        if (!pressed && f1_sent) {
+            unregister_code16(f1_sent);
+            f1_sent = 0;
+            return false;
+        }
+    }
+
+    // Game mode bypass: AltGr SE is a plain Right Alt and no remaps apply.
+    if (!remaps_active()) {
+        if (keycode == CK_SWALT) {
+            if (pressed) {
+                register_code(KC_RALT);
+            } else {
+                unregister_code(KC_RALT);
+            }
+            return false;
+        }
+        if (!(swalt_held || swe_swallowed || nav_trigger)) goto skip_remaps;
+    }
 
     // --- Right Alt / Swedish letters -------------------------------------
     // A plain Right Alt in the keymap gets the same treatment, so the feature
@@ -591,6 +707,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         if (is_trigger && !nav_process(keycode, record)) return false;
     }
 
+skip_remaps:
     switch (keycode) {
         case CK_PPTD:
             if (pressed) pp_press();
@@ -644,6 +761,7 @@ void housekeeping_task_user(void) {
     pp_task();
     th_task();
     paint_task();
+    numlock_sync_task();
 }
 
 void keyboard_post_init_user(void) {
@@ -686,6 +804,12 @@ enum via_isycat_value {
 #define id_th_tap_first 51       // ids 51..54 = Tap/Hold tap keycodes
 #define id_th_hold_first 55      // ids 55..58 = Tap/Hold hold keycodes
 #define id_th_term 59
+#define id_game_mode 60     // not saved; also used by the host helper
+#define id_game_f1 61
+#define id_game_f1_target 62
+#define id_game_bypass 63
+#define id_game_led 64
+#define id_game_numlock 65
 
 enum paint_tool { TOOL_NONE = 0, TOOL_CLEAR_ALL, TOOL_FILL_ALL };
 
@@ -742,6 +866,12 @@ static void isycat_get(uint8_t id, uint8_t *v) {
             v[1] = cfg.th_hold[id - id_th_hold_first] & 0xFF;
             break;
         case id_th_term: v[0] = cfg.th_term_10ms; break;
+        case id_game_mode: v[0] = game_mode; break;
+        case id_game_f1: v[0] = flag_get(cfg.game_flags, GAME_F1); break;
+        case id_game_f1_target: v[0] = cfg.f1_target >> 8; v[1] = cfg.f1_target & 0xFF; break;
+        case id_game_bypass: v[0] = flag_get(cfg.game_flags, GAME_BYPASS); break;
+        case id_game_led: v[0] = flag_get(cfg.game_flags, GAME_LED); break;
+        case id_game_numlock: v[0] = flag_get(cfg.game_flags, GAME_NUMLOCK); break;
         case id_palette_first ... id_palette_first + PALETTE_SIZE - 1:
             v[0] = cfg.palette[id - id_palette_first][0];
             v[1] = cfg.palette[id - id_palette_first][1];
@@ -793,6 +923,14 @@ static void isycat_set(uint8_t id, uint8_t *v) {
             cfg.th_hold[id - id_th_hold_first] = (v[0] << 8) | v[1];
             break;
         case id_th_term: cfg.th_term_10ms = v[0] < 5 ? 5 : v[0]; break;
+        case id_game_mode:
+            if ((v[0] ? true : false) != game_mode) game_mode_toggle();
+            break;
+        case id_game_f1: flag_set(&cfg.game_flags, GAME_F1, v[0]); break;
+        case id_game_f1_target: cfg.f1_target = (v[0] << 8) | v[1]; break;
+        case id_game_bypass: flag_set(&cfg.game_flags, GAME_BYPASS, v[0]); break;
+        case id_game_led: flag_set(&cfg.game_flags, GAME_LED, v[0]); break;
+        case id_game_numlock: flag_set(&cfg.game_flags, GAME_NUMLOCK, v[0]); break;
         case id_palette_first ... id_palette_first + PALETTE_SIZE - 1:
             cfg.palette[id - id_palette_first][0] = v[0];
             cfg.palette[id - id_palette_first][1] = v[1];

@@ -44,6 +44,8 @@ definition = {
     ] + [
         {"name": f"Tap/Hold {i}", "title": f"Tap/Hold {i}: tap and hold keycodes are set in Tweaks", "shortName": f"TH {i}"}
         for i in range(1, 5)
+    ] + [
+        {"name": "Game mode", "title": "Toggle game mode (F1 stays F1, remaps off). With Num Lock sync it toggles Num Lock", "shortName": "Game"},
     ],
     "menus": [
         {"label": "Lighting", "content": [
@@ -120,6 +122,15 @@ definition = {
             ] + [
                 {"label": "Hold after (x10 ms)", "type": "range", "options": [5, 100],
                  "content": ["id_isycat_th_term", 0, 59]},
+            ]},
+            {"label": "Game mode", "content": [
+                toggle("Game mode on (now)", "id_isycat_game_mode", 60),
+                toggle("Follow host Num Lock (AHK sets it in fullscreen apps)", "id_isycat_game_numlock", 65),
+                toggle("F1 sends the key below outside game mode", "id_isycat_game_f1", 61),
+                {"showIf": "{id_isycat_game_f1} == 1", "label": "F1 outside game mode", "type": "keycode",
+                 "content": ["id_isycat_game_f1_target", 0, 62]},
+                toggle("Game mode turns off nav remaps and Swedish letters", "id_isycat_game_bypass", 63),
+                toggle("Light F1 green in game mode", "id_isycat_game_led", 64),
             ]},
             {"label": "Play / Next key", "content": [
                 {"label": "Double-tap window (x10 ms)", "type": "range", "options": [10, 100],

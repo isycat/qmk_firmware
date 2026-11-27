@@ -140,7 +140,7 @@
       "RGB_VAD",
       "RGB_MOD",
       "RGB_HUD",
-      "RGB_SAD",
+      "CUSTOM(14)",
       "KC_TRNS",
       "KC_TRNS",
       "KC_TRNS",

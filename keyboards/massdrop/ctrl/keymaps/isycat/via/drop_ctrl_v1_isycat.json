@@ -79,6 +79,11 @@
       "name": "Tap/Hold 4",
       "title": "Tap/Hold 4: tap and hold keycodes are set in Tweaks",
       "shortName": "TH 4"
+    },
+    {
+      "name": "Game mode",
+      "title": "Toggle game mode (F1 stays F1, remaps off). With Num Lock sync it toggles Num Lock",
+      "shortName": "Game"
     }
   ],
   "menus": [
@@ -991,6 +996,66 @@
                 "id_isycat_th_term",
                 0,
                 59
+              ]
+            }
+          ]
+        },
+        {
+          "label": "Game mode",
+          "content": [
+            {
+              "label": "Game mode on (now)",
+              "type": "toggle",
+              "content": [
+                "id_isycat_game_mode",
+                0,
+                60
+              ]
+            },
+            {
+              "label": "Follow host Num Lock (AHK sets it in fullscreen apps)",
+              "type": "toggle",
+              "content": [
+                "id_isycat_game_numlock",
+                0,
+                65
+              ]
+            },
+            {
+              "label": "F1 sends the key below outside game mode",
+              "type": "toggle",
+              "content": [
+                "id_isycat_game_f1",
+                0,
+                61
+              ]
+            },
+            {
+              "showIf": "{id_isycat_game_f1} == 1",
+              "label": "F1 outside game mode",
+              "type": "keycode",
+              "content": [
+                "id_isycat_game_f1_target",
+                0,
+                62
+              ]
+            },
+            {
+              "label": "Game mode turns off nav remaps and Swedish letters",
+              "type": "toggle",
+              "content": [
+                "id_isycat_game_bypass",
+                0,
+                63
+              ]
+            },
+            {
+              "label": "Light F1 green in game mode",
+              "type": "toggle",
+              "content": [
+                "id_isycat_game_led",
+                0,
+                64
               ]
             }
           ]

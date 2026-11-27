@@ -9,7 +9,7 @@
 #define RGB_MATRIX_KEYPRESSES
 
 // Persistent settings for the keymap (see user_config_t in keymap.c)
-#define EECONFIG_USER_DATA_SIZE 121
+#define EECONFIG_USER_DATA_SIZE 160
 
 // Give Windows time to see each key of an Alt code
 #define TAP_CODE_DELAY 5
