@@ -11,6 +11,7 @@
  * Based on the VIA keymap from the-via/qmk_userspace_via (InonL, dsluo). GPL-2.0-or-later.
  */
 #include QMK_KEYBOARD_H
+#include "lib/lib8tion/lib8tion.h"
 
 enum ctrl_keycodes {
     U_T_AUTO = QK_KB_0, // USB Extra Port Toggle Auto Detect / Always Active
@@ -31,6 +32,9 @@ enum ctrl_keycodes {
 /* Persistent settings (EEPROM user datablock)                               */
 /* ------------------------------------------------------------------------- */
 
+#define KEY_LED_COUNT 87 // LEDs 0..86 sit under keys, 87..118 are underglow
+#define PALETTE_SIZE 15
+
 enum lighting_zone { ZONE_ALL = 0, ZONE_KEYS, ZONE_UNDERGLOW, ZONE_OFF, ZONE_COUNT };
 
 typedef struct {
@@ -43,12 +47,24 @@ typedef struct {
     uint8_t nav_flags;    // NAV_* bits: which navigation remaps are on
     uint8_t swe_flags;    // SWE_* bits: Swedish letter options
     uint8_t td_term_10ms; // Pause double-tap window in 10 ms units
-    uint8_t reserved[3];
+    uint8_t ug_mode;      // enum ug_mode
+    uint8_t ug_hue;       // underglow colour for the UG_SOLID/UG_BREATHE modes
+    uint8_t ug_sat;
+    uint8_t ug_val;       // underglow brightness for its own modes
+    uint8_t paint_on;     // show painted per-key colours
+    uint8_t reserved[2];
+    uint8_t palette[PALETTE_SIZE][2];     // hue, sat of brush colours 1..15
+    uint8_t keymap[(KEY_LED_COUNT + 1) / 2]; // 4 bits per key LED: 0 = effect, n = palette[n-1]
 } user_config_t;
 
 _Static_assert(sizeof(user_config_t) == EECONFIG_USER_DATA_SIZE, "EECONFIG_USER_DATA_SIZE mismatch");
+// EEPROM budget: settings + VIA header (4) + 4 layers of keymap must leave room for VIA macros.
+_Static_assert(EECONFIG_SIZE + 4 + DYNAMIC_KEYMAP_LAYER_COUNT * MATRIX_ROWS * MATRIX_COLS * 2 + 128 <= EEPROM_SIZE,
+               "Not enough EEPROM left for VIA macros");
 
-#define USER_CONFIG_MAGIC 0xC8
+#define USER_CONFIG_MAGIC 0xC9
+
+enum ug_mode { UG_FOLLOW = 0, UG_SOLID, UG_BREATHE, UG_RAINBOW, UG_OFF, UG_COUNT };
 
 enum nav_flag {
     NAV_PGUPDN    = 1 << 0, // Ctrl+PgUp/PgDn -> Ctrl+Home/End
@@ -78,11 +94,31 @@ static void cfg_defaults(void) {
         .nav_flags    = NAV_ALL,
         .swe_flags    = SWE_ALL,
         .td_term_10ms = 30,
+        .ug_mode      = UG_FOLLOW,
+        .ug_hue       = 170,
+        .ug_sat       = 255,
+        .ug_val       = 128,
+        .paint_on     = 1,
+        .palette = {
+            {0, 255}, {21, 255}, {43, 255}, {64, 255}, {85, 255}, {106, 255}, {128, 255}, {149, 255},
+            {170, 255}, {191, 255}, {213, 255}, {234, 255}, {245, 128}, {0, 0}, {28, 96},
+        },
     };
 }
 
 static void cfg_save(void) {
     eeconfig_update_user_datablock(&cfg);
+}
+
+// Moving the settings block moves VIA's data too. If our settings are not valid
+// (first boot or a layout change), make VIA reload the built-in keymap as well
+// rather than reading shifted bytes.
+void via_init_kb(void) {
+    user_config_t probe;
+    eeconfig_read_user_datablock(&probe);
+    if (!eeconfig_is_user_datablock_valid() || probe.magic != USER_CONFIG_MAGIC) {
+        via_eeprom_set_valid(false);
+    }
 }
 
 void eeconfig_init_user(void) {
@@ -100,18 +136,8 @@ void eeconfig_init_user(void) {
 _Static_assert(RGB_MATRIX_EFFECT_MAX == 45, "RGB effect list changed: update the VIA definition JSON");
 
 static void zone_apply(void) {
-    switch (cfg.zone) {
-        case ZONE_KEYS:
-            rgb_matrix_set_flags_noeeprom(LED_FLAG_KEYLIGHT | LED_FLAG_MODIFIER | LED_FLAG_INDICATOR);
-            break;
-        case ZONE_UNDERGLOW:
-            rgb_matrix_set_flags_noeeprom(LED_FLAG_UNDERGLOW);
-            break;
-        default:
-            rgb_matrix_set_flags_noeeprom(LED_FLAG_ALL);
-            break;
-    }
-    rgb_matrix_set_color_all(0, 0, 0);
+    // Visibility is handled per LED in the indicator pass, so effects always draw everywhere.
+    rgb_matrix_set_flags_noeeprom(LED_FLAG_ALL);
     // The matrix itself always stays enabled so the indicator can still render;
     // ZONE_OFF is implemented by blanking everything in the indicator pass.
     if (!rgb_matrix_is_enabled()) rgb_matrix_enable_noeeprom();
@@ -123,9 +149,69 @@ static void zone_set(uint8_t zone, bool save) {
     if (save) cfg_save();
 }
 
+/* --- Per-key paint ---------------------------------------------------- */
+
+static bool     paint_mode;  // pressing keys paints instead of typing (not saved)
+static uint8_t  paint_brush; // 0 = back to effect, 1..15 = palette colour
+static uint16_t paint_timer;
+
+#define PAINT_TIMEOUT_MS 60000 // paint mode switches itself off after a minute idle
+
+static uint8_t key_color(uint8_t led) {
+    uint8_t b = cfg.keymap[led / 2];
+    return (led & 1) ? (b >> 4) : (b & 0x0F);
+}
+
+static void key_color_set(uint8_t led, uint8_t c) {
+    uint8_t *b = &cfg.keymap[led / 2];
+    *b = (led & 1) ? ((*b & 0x0F) | (c << 4)) : ((*b & 0xF0) | (c & 0x0F));
+}
+
+static void paint_all(uint8_t c) {
+    for (uint8_t i = 0; i < KEY_LED_COUNT; i++) key_color_set(i, c);
+}
+
+static void paint_task(void) {
+    if (paint_mode && timer_elapsed(paint_timer) > PAINT_TIMEOUT_MS) paint_mode = false;
+}
+
+/* --- Indicator pass: zones, underglow, painted keys, Scroll Lock ------- */
+
+static RGB underglow_color(uint8_t led) {
+    uint8_t t = scale16by8(g_rgb_timer, qadd8(rgb_matrix_get_speed() / 4, 1)) & 0xFF;
+    switch (cfg.ug_mode) {
+        case UG_BREATHE:
+            return hsv_to_rgb((HSV){cfg.ug_hue, cfg.ug_sat, scale8(cfg.ug_val, sin8(t))});
+        case UG_RAINBOW:
+            return hsv_to_rgb((HSV){(uint8_t)(t + (led - KEY_LED_COUNT) * 8), 255, cfg.ug_val});
+        default:
+            return hsv_to_rgb((HSV){cfg.ug_hue, cfg.ug_sat, cfg.ug_val});
+    }
+}
+
 bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
-    if (cfg.zone == ZONE_OFF) {
-        for (uint8_t i = led_min; i < led_max; i++) rgb_matrix_set_color(i, 0, 0, 0);
+    bool keys_visible = cfg.zone == ZONE_ALL || cfg.zone == ZONE_KEYS;
+    bool ug_visible   = (cfg.zone == ZONE_ALL || cfg.zone == ZONE_UNDERGLOW) && cfg.ug_mode != UG_OFF;
+
+    for (uint8_t i = led_min; i < led_max; i++) {
+        if (i >= KEY_LED_COUNT) {
+            if (!ug_visible) {
+                rgb_matrix_set_color(i, 0, 0, 0);
+            } else if (cfg.ug_mode != UG_FOLLOW) {
+                RGB rgb = underglow_color(i);
+                rgb_matrix_set_color(i, rgb.r, rgb.g, rgb.b);
+            }
+            continue;
+        }
+        if (!keys_visible) {
+            rgb_matrix_set_color(i, 0, 0, 0);
+            continue;
+        }
+        uint8_t c = cfg.paint_on || paint_mode ? key_color(i) : 0;
+        if (c) {
+            RGB rgb = hsv_to_rgb((HSV){cfg.palette[c - 1][0], cfg.palette[c - 1][1], rgb_matrix_get_val()});
+            rgb_matrix_set_color(i, rgb.r, rgb.g, rgb.b);
+        }
     }
     if (cfg.ind_enabled && host_keyboard_led_state().scroll_lock) {
         RGB rgb = hsv_to_rgb((HSV){cfg.ind_hue, cfg.ind_sat, cfg.ind_val});
@@ -364,6 +450,19 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     static uint32_t boot_timer;
     bool            pressed = record->event.pressed;
 
+    // Paint mode: keys paint their LED with the brush instead of typing.
+    if (paint_mode) {
+        if (pressed && record->event.key.row < MATRIX_ROWS && record->event.key.col < MATRIX_COLS) {
+            uint8_t led = g_led_config.matrix_co[record->event.key.row][record->event.key.col];
+            if (led < KEY_LED_COUNT) {
+                key_color_set(led, paint_brush);
+                cfg_save();
+            }
+            paint_timer = timer_read();
+        }
+        return false;
+    }
+
     // Track modifier releases so hidden modifiers are not restored after release.
     if (!pressed && is_basic_mod(keycode)) {
         nav_suppressed &= ~MOD_BIT(keycode);
@@ -459,6 +558,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
 void housekeeping_task_user(void) {
     pp_task();
+    paint_task();
 }
 
 void keyboard_post_init_user(void) {
@@ -486,7 +586,19 @@ enum via_isycat_value {
     id_nav_tab_arrows,
     id_swe_plain_ralt,
     id_swe_alt_keys,
+    id_ug_mode,
+    id_ug_color,
+    id_ug_brightness,
+    id_paint_mode,
+    id_paint_brush,
+    id_paint_brush_color,
+    id_paint_on,
+    id_paint_tools,
 };
+
+#define id_palette_first 21 // ids 21..35 = palette colours 1..15
+
+enum paint_tool { TOOL_NONE = 0, TOOL_CLEAR_ALL, TOOL_FILL_ALL };
 
 static uint8_t flag_get(uint8_t field, uint8_t bit) {
     return (field & bit) ? 1 : 0;
@@ -513,6 +625,26 @@ static void isycat_get(uint8_t id, uint8_t *v) {
         case id_swe_enabled: v[0] = flag_get(cfg.swe_flags, SWE_ON); break;
         case id_swe_plain_ralt: v[0] = flag_get(cfg.swe_flags, SWE_PLAIN_RALT); break;
         case id_swe_alt_keys: v[0] = flag_get(cfg.swe_flags, SWE_ALT_KEYS); break;
+        case id_ug_mode: v[0] = cfg.ug_mode; break;
+        case id_ug_color: v[0] = cfg.ug_hue; v[1] = cfg.ug_sat; break;
+        case id_ug_brightness: v[0] = cfg.ug_val; break;
+        case id_paint_mode: v[0] = paint_mode; break;
+        case id_paint_brush: v[0] = paint_brush; break;
+        case id_paint_brush_color:
+            if (paint_brush) {
+                v[0] = cfg.palette[paint_brush - 1][0];
+                v[1] = cfg.palette[paint_brush - 1][1];
+            } else {
+                v[0] = 0;
+                v[1] = 0;
+            }
+            break;
+        case id_paint_on: v[0] = cfg.paint_on; break;
+        case id_paint_tools: v[0] = TOOL_NONE; break;
+        case id_palette_first ... id_palette_first + PALETTE_SIZE - 1:
+            v[0] = cfg.palette[id - id_palette_first][0];
+            v[1] = cfg.palette[id - id_palette_first][1];
+            break;
         case id_td_term: v[0] = cfg.td_term_10ms; break;
     }
 }
@@ -530,6 +662,29 @@ static void isycat_set(uint8_t id, uint8_t *v) {
         case id_swe_enabled: flag_set(&cfg.swe_flags, SWE_ON, v[0]); break;
         case id_swe_plain_ralt: flag_set(&cfg.swe_flags, SWE_PLAIN_RALT, v[0]); break;
         case id_swe_alt_keys: flag_set(&cfg.swe_flags, SWE_ALT_KEYS, v[0]); break;
+        case id_ug_mode: cfg.ug_mode = v[0] < UG_COUNT ? v[0] : UG_FOLLOW; break;
+        case id_ug_color: cfg.ug_hue = v[0]; cfg.ug_sat = v[1]; break;
+        case id_ug_brightness: cfg.ug_val = v[0]; break;
+        case id_paint_mode:
+            paint_mode  = v[0] ? true : false;
+            paint_timer = timer_read();
+            break;
+        case id_paint_brush: paint_brush = v[0] <= PALETTE_SIZE ? v[0] : 0; break;
+        case id_paint_brush_color:
+            if (paint_brush) {
+                cfg.palette[paint_brush - 1][0] = v[0];
+                cfg.palette[paint_brush - 1][1] = v[1];
+            }
+            break;
+        case id_paint_on: cfg.paint_on = v[0] ? 1 : 0; break;
+        case id_paint_tools:
+            if (v[0] == TOOL_CLEAR_ALL) paint_all(0);
+            if (v[0] == TOOL_FILL_ALL) paint_all(paint_brush);
+            break;
+        case id_palette_first ... id_palette_first + PALETTE_SIZE - 1:
+            cfg.palette[id - id_palette_first][0] = v[0];
+            cfg.palette[id - id_palette_first][1] = v[1];
+            break;
         case id_td_term: cfg.td_term_10ms = v[0] < 10 ? 10 : v[0]; break;
     }
 }

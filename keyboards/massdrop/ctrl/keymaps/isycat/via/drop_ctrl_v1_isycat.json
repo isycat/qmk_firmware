@@ -314,6 +314,255 @@
           ]
         },
         {
+          "label": "Underglow",
+          "content": [
+            {
+              "label": "Underglow",
+              "type": "dropdown",
+              "options": [
+                "Same as keys",
+                "Own colour",
+                "Own colour, breathing",
+                "Rainbow",
+                "Off"
+              ],
+              "content": [
+                "id_isycat_ug_mode",
+                0,
+                13
+              ]
+            },
+            {
+              "showIf": "{id_isycat_ug_mode} == 1 || {id_isycat_ug_mode} == 2",
+              "label": "Colour",
+              "type": "color",
+              "content": [
+                "id_isycat_ug_color",
+                0,
+                14
+              ]
+            },
+            {
+              "showIf": "{id_isycat_ug_mode} != 0 && {id_isycat_ug_mode} != 4",
+              "label": "Brightness",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_ug_brightness",
+                0,
+                15
+              ]
+            }
+          ]
+        },
+        {
+          "label": "Per-key colours",
+          "content": [
+            {
+              "label": "Show painted key colours",
+              "type": "toggle",
+              "content": [
+                "id_isycat_paint_on",
+                0,
+                19
+              ]
+            },
+            {
+              "label": "Brush",
+              "type": "dropdown",
+              "options": [
+                "Clear (show effect)",
+                "Colour 1",
+                "Colour 2",
+                "Colour 3",
+                "Colour 4",
+                "Colour 5",
+                "Colour 6",
+                "Colour 7",
+                "Colour 8",
+                "Colour 9",
+                "Colour 10",
+                "Colour 11",
+                "Colour 12",
+                "Colour 13",
+                "Colour 14",
+                "Colour 15"
+              ],
+              "content": [
+                "id_isycat_paint_brush",
+                0,
+                17
+              ]
+            },
+            {
+              "label": "Paint mode: press keys on the keyboard to paint them (no typing; ends after 1 min idle)",
+              "type": "toggle",
+              "content": [
+                "id_isycat_paint_mode",
+                0,
+                16
+              ]
+            },
+            {
+              "label": "Apply brush to",
+              "type": "dropdown",
+              "options": [
+                "-",
+                "Clear all keys",
+                "All keys"
+              ],
+              "content": [
+                "id_isycat_paint_tools",
+                0,
+                20
+              ]
+            }
+          ]
+        },
+        {
+          "label": "Colour palette",
+          "content": [
+            {
+              "label": "Colour 1",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_1",
+                0,
+                21
+              ]
+            },
+            {
+              "label": "Colour 2",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_2",
+                0,
+                22
+              ]
+            },
+            {
+              "label": "Colour 3",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_3",
+                0,
+                23
+              ]
+            },
+            {
+              "label": "Colour 4",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_4",
+                0,
+                24
+              ]
+            },
+            {
+              "label": "Colour 5",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_5",
+                0,
+                25
+              ]
+            },
+            {
+              "label": "Colour 6",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_6",
+                0,
+                26
+              ]
+            },
+            {
+              "label": "Colour 7",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_7",
+                0,
+                27
+              ]
+            },
+            {
+              "label": "Colour 8",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_8",
+                0,
+                28
+              ]
+            },
+            {
+              "label": "Colour 9",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_9",
+                0,
+                29
+              ]
+            },
+            {
+              "label": "Colour 10",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_10",
+                0,
+                30
+              ]
+            },
+            {
+              "label": "Colour 11",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_11",
+                0,
+                31
+              ]
+            },
+            {
+              "label": "Colour 12",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_12",
+                0,
+                32
+              ]
+            },
+            {
+              "label": "Colour 13",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_13",
+                0,
+                33
+              ]
+            },
+            {
+              "label": "Colour 14",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_14",
+                0,
+                34
+              ]
+            },
+            {
+              "label": "Colour 15",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_15",
+                0,
+                35
+              ]
+            }
+          ]
+        },
+        {
           "label": "Scroll Lock indicator",
           "content": [
             {

@@ -57,6 +57,30 @@ definition = {
                 {"showIf": on, "label": "Color", "type": "color",
                  "content": ["id_qmk_rgb_matrix_color", 3, 4]},
             ]},
+            {"label": "Underglow", "content": [
+                {"label": "Underglow", "type": "dropdown",
+                 "options": ["Same as keys", "Own colour", "Own colour, breathing", "Rainbow", "Off"],
+                 "content": ["id_isycat_ug_mode", 0, 13]},
+                {"showIf": "{id_isycat_ug_mode} == 1 || {id_isycat_ug_mode} == 2", "label": "Colour",
+                 "type": "color", "content": ["id_isycat_ug_color", 0, 14]},
+                {"showIf": "{id_isycat_ug_mode} != 0 && {id_isycat_ug_mode} != 4", "label": "Brightness",
+                 "type": "range", "options": [0, 255], "content": ["id_isycat_ug_brightness", 0, 15]},
+            ]},
+            {"label": "Per-key colours", "content": [
+                toggle("Show painted key colours", "id_isycat_paint_on", 19),
+                {"label": "Brush", "type": "dropdown",
+                 "options": ["Clear (show effect)"] + [f"Colour {i}" for i in range(1, 16)],
+                 "content": ["id_isycat_paint_brush", 0, 17]},
+                toggle("Paint mode: press keys on the keyboard to paint them (no typing; ends after 1 min idle)",
+                       "id_isycat_paint_mode", 16),
+                {"label": "Apply brush to", "type": "dropdown",
+                 "options": ["-", "Clear all keys", "All keys"],
+                 "content": ["id_isycat_paint_tools", 0, 20]},
+            ]},
+            {"label": "Colour palette", "content": [
+                {"label": f"Colour {i + 1}", "type": "color", "content": [f"id_isycat_palette_{i + 1}", 0, 21 + i]}
+                for i in range(15)
+            ]},
             {"label": "Scroll Lock indicator", "content": [
                 toggle("Show Scroll Lock on its key", "id_isycat_ind_enabled", 2),
                 {"showIf": "{id_isycat_ind_enabled} == 1", "label": "Color", "type": "color",
