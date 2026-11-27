@@ -1,0 +1,54 @@
+# Drop CTRL v1 – isycat VIA keymap
+
+Target: `massdrop/ctrl` (Drop CTRL **v1**, SAMD51, USB 04D8:EED2). Built on QMK 0.26.11, the
+last QMK release that still supports this board.
+
+    make massdrop/ctrl:isycat
+
+## What it does (replaces the AutoHotkey macros)
+
+| Input | Output |
+|---|---|
+| Ctrl + PgUp / PgDn (any other mods) | Ctrl + Home / End |
+| Ctrl + Left / Right | Home / End |
+| Ctrl + Shift + Left / Right | Shift + Home / End |
+| Alt + Left / Right | Ctrl + Left / Right (word jump) |
+| Alt + Shift + Left / Right | Ctrl + Shift + Left / Right |
+| Ctrl + Alt + Left / Right | Ctrl + Shift + Tab / Ctrl + Tab |
+| Win + Ctrl + Space | Win + ; (emoji picker) |
+| Pause (key `PP_TD`), 1 tap | Play / Pause |
+| Pause (key `PP_TD`), 2 taps within 300 ms | Next track |
+| AltGr SE + a or [ | å (Shift: Å) |
+| AltGr SE + o or ; | ö (Shift: Ö) |
+| AltGr SE + e or ' | ä (Shift: Ä) |
+
+The remaps never let Windows see a lone Alt press and release, so the menu bar doesn't pop up.
+Swedish letters are typed with Windows Alt codes (Alt + numpad 0229 and so on). The firmware turns
+Num Lock on for the code and back off afterwards if it was off. A tap of AltGr SE on its own sends nothing.
+
+## Lighting
+
+* The Scroll Lock LED lights up (red by default) whenever the host's Scroll Lock is on. It works in
+  every lighting zone, including "Off".
+* `RGB_TOG` / `RM_TOGG` / the `LED Zone` key cycle through all LEDs, keys only, underglow only and off,
+  and the choice is saved. The matrix itself never switches off, so the indicator keeps working.
+
+## VIA
+
+Load `via/drop_ctrl_v1_isycat.json` in VIA under Settings, "Show Design tab", then Design, "Load Draft
+Definition". It adds:
+
+* Lighting → Backlight: zones, brightness, effect (the exact effects in this build), speed, colour
+* Lighting → Scroll Lock indicator: on/off, colour, brightness
+* Tweaks: navigation remaps on/off, Swedish letters on/off, Play/Next double-tap window
+* Custom keycodes `PP_TD`, `AltGr SE` and `LED Zone` in the Custom tab
+
+`via/drop_ctrl_v1_isycat.layout.json` is your April 2025 layout with Pause and Right Alt switched to
+the new keys. Load that one rather than the old export, or Pause and Right Alt go back to plain keys.
+
+`layers.h` is generated from `tools/drop_ctrl.layout.json` with `tools/gen_layers.py`.
+
+## Still in AutoHotkey (not keyboard features)
+
+Mic mute toggle on Scroll Lock (the firmware only shows the state), Spotify volume, window
+management, app/game-specific bindings, F1 → Alt+F5 outside fullscreen.

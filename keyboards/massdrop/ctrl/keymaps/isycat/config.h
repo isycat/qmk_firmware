@@ -1,22 +1,15 @@
-/* Copyright 2022 dsluo (me@dsluo.dev)
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+/* Copyright 2022 dsluo (me@dsluo.dev), 2026 isycat
+ * SPDX-License-Identifier: GPL-2.0-or-later
  */
-
 #pragma once
 
 // Enable additional LED functionality
 #define USB_LED_INDICATOR_ENABLE
 #define RGB_MATRIX_FRAMEBUFFER_EFFECTS
 #define RGB_MATRIX_KEYPRESSES
+
+// Persistent settings for the keymap (see user_config_t in keymap.c)
+#define EECONFIG_USER_DATA_SIZE 12
+
+// Give Windows time to see each key of an Alt code
+#define TAP_CODE_DELAY 5

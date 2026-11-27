@@ -30,4 +30,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: massdrop_ctrl_isycat-${{ github.sha }}
-          path: massdrop_ctrl_isycat.bin
+          path: |
+            massdrop_ctrl_isycat.bin
+            keyboards/massdrop/ctrl/keymaps/isycat/via/*.json
