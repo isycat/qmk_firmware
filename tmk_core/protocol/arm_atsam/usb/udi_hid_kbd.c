@@ -716,10 +716,16 @@ static void udi_hid_raw_report_sent(udd_ep_status_t status, iram_size_t nb_sent,
 static void udi_hid_raw_setreport_valid(void) {}
 
 void raw_hid_send(uint8_t *data, uint8_t length) {
-    if (main_b_raw_enable && !udi_hid_raw_b_report_trans_ongoing && length == UDI_HID_RAW_REPORT_SIZE) {
-        memcpy(udi_hid_raw_report, data, UDI_HID_RAW_REPORT_SIZE);
-        udi_hid_raw_send_report();
+    // Never drop a reply: VIA pairs each reply with the request it just sent, so a
+    // dropped reply makes it read the wrong offsets (scrambled keymap in VIA).
+    // If the IN endpoint is still busy, queue the reply; udi_hid_raw_report_sent()
+    // sends it as soon as the current transfer completes.
+    if (!main_b_raw_enable || length != UDI_HID_RAW_REPORT_SIZE) {
+        return;
     }
+    memcpy(udi_hid_raw_report, data, UDI_HID_RAW_REPORT_SIZE);
+    udi_hid_raw_b_report_valid = true;
+    udi_hid_raw_send_report();
 }
 
 bool udi_hid_raw_receive_report(void) {
