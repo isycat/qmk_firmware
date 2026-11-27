@@ -22,8 +22,11 @@ last QMK release that still supports this board.
 | AltGr SE + e or ' | ä (Shift: Ä) |
 
 The remaps never let Windows see a lone Alt press and release, so the menu bar doesn't pop up.
-Swedish letters are typed with Windows Alt codes (Alt + numpad 0229 and so on). The firmware turns
-Num Lock on for the code and back off afterwards if it was off. A tap of AltGr SE on its own sends nothing.
+Swedish letters are typed with Windows Alt codes (Alt + numpad 0229 and so on), so they work with a
+stock US layout. Alt codes need Num Lock on. The firmware never trusts its own idea of Num Lock: after
+toggling it, it waits for the PC's LED report to confirm before typing the digits, so a letter typed
+right after a reconnect can't toggle Num Lock the wrong way. Num Lock goes back off 0.4 s after the
+last letter, once no modifier is held. A tap of AltGr SE on its own sends nothing.
 
 ## Lighting
 
