@@ -16,9 +16,10 @@ from `g_led_config`, so there is no per-variant code.
 
 ## Flashing
 
-Unplug, hold Esc, plug in (this also clears saved settings), then flash the `.bin` for your variant
-with QMK Toolbox. Fn+\ also enters the bootloader once this firmware is on. If neither works, the
-PCB has a reset button under the plate. Glorious publishes the stock CORE firmware if you want to go back.
+First flash, from Glorious' stock CORE firmware: unplug, hold Fn+\ (ISO: Fn+Backspace) and plug in.
+Once QMK is on: hold Esc while plugging in (also clears saved settings), or press Fn+\.
+Last resort: hold the reset button on the PCB (under the bottom plate) while plugging in.
+Then flash the `.bin` for your variant with QMK Toolbox (0.3 or newer for the WB32 rev2). Glorious publishes the stock CORE firmware if you want to go back.
 
 ## What it does
 
