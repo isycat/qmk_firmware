@@ -35,3 +35,6 @@ enum ak820pro_keycodes {
     SCR_MEDIA,             // force the clock vs the now-playing view (toggle)
     AK820PRO_SAFE_RANGE
 };
+
+// Idle-sleep timeout for the LCD and RGB in ms, 0 = never. Weak; a keymap may override it.
+uint32_t display_sleep_timeout_ms(void);
