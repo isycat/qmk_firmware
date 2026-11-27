@@ -218,15 +218,15 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
             }
             continue;
         }
-        if (!keys_visible) {
-            rgb_matrix_set_color(i, 0, 0, 0);
-            continue;
-        }
+        // Painted keys are their own layer: they keep their own colour and
+        // brightness even when the effect is off, dark or hidden by the zone.
         uint8_t c = cfg.paint_on || paint_mode ? key_color(i) : 0;
         if (c) {
             const uint8_t *pc  = cfg.palette[c - 1];
-            RGB            rgb = hsv_to_rgb((HSV){pc[0], pc[1], scale8(pc[2], rgb_matrix_get_val())});
+            RGB            rgb = hsv_to_rgb((HSV){pc[0], pc[1], pc[2]});
             rgb_matrix_set_color(i, rgb.r, rgb.g, rgb.b);
+        } else if (!keys_visible) {
+            rgb_matrix_set_color(i, 0, 0, 0);
         }
     }
     if (cfg.ind_enabled && host_keyboard_led_state().scroll_lock) {
