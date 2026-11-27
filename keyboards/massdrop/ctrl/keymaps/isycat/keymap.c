@@ -216,6 +216,12 @@ static void swalt_send(void) {
  * unrelated key, so that the host never sees a lone Alt tap (which would open
  * the menu bar in many Windows apps). */
 
+// Key tapped while Alt is held, right before Alt is hidden from the host.
+// F22 does nothing in Windows or common apps (F23 is the Copilot key with Win+Shift).
+#ifndef NAV_MASK_KEY
+#    define NAV_MASK_KEY KC_F22
+#endif
+
 static uint8_t  nav_suppressed; // real modifiers currently hidden from the host
 static uint8_t  nav_added;      // modifiers added for the active remap
 static uint16_t nav_trigger;    // physical keycode that started the active remap
@@ -293,6 +299,13 @@ static bool nav_process(uint16_t keycode, keyrecord_t *record) {
         uint8_t restore = nav_suppressed & ~remove;
         if (restore) add_mods(restore);
         nav_suppressed &= remove;
+
+        // Windows treats an Alt release as a menu/access-key tap (and Alt+Shift as
+        // the input-language hotkey) unless a non-modifier key went down while Alt
+        // was held. Tap an inert mask key first, like AutoHotkey's MenuMaskKey.
+        if (remove & get_mods() & MOD_MASK_ALT) {
+            tap_code(NAV_MASK_KEY);
+        }
 
         // Add new modifiers before removing Alt so Windows never sees a lone Alt.
         add &= ~get_mods();
