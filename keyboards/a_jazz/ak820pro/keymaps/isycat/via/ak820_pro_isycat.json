@@ -1,0 +1,1312 @@
+{
+  "name": "AJAZZ AK820 Pro (isycat)",
+  "vendorId": "0x0C45",
+  "productId": "0x8009",
+  "matrix": {
+    "rows": 6,
+    "cols": 15
+  },
+  "customKeycodes": [
+    {
+      "name": "SCR_TOG",
+      "title": "Toggle LCD backlight",
+      "shortName": "LCD"
+    },
+    {
+      "name": "BT1",
+      "title": "Bluetooth slot 1 (BT mode)",
+      "shortName": "BT1"
+    },
+    {
+      "name": "BT2",
+      "title": "Bluetooth slot 2 (BT mode)",
+      "shortName": "BT2"
+    },
+    {
+      "name": "BT3",
+      "title": "Bluetooth slot 3 (BT mode)",
+      "shortName": "BT3"
+    },
+    {
+      "name": "BT24G",
+      "title": "2.4GHz (2.4G mode)",
+      "shortName": "2.4G"
+    },
+    {
+      "name": "BT_PAIR",
+      "title": "Pair (hold, BT/2.4G mode)",
+      "shortName": "Pair"
+    },
+    {
+      "name": "RGBM_TOG",
+      "title": "RGB Matrix: toggle",
+      "shortName": "RGB Tog"
+    },
+    {
+      "name": "RGBM_MOD",
+      "title": "RGB Matrix: next effect",
+      "shortName": "RGB Mod+"
+    },
+    {
+      "name": "RGBM_RMOD",
+      "title": "RGB Matrix: previous effect",
+      "shortName": "RGB Mod-"
+    },
+    {
+      "name": "RGBM_HUI",
+      "title": "RGB Matrix: hue +",
+      "shortName": "Hue+"
+    },
+    {
+      "name": "RGBM_HUD",
+      "title": "RGB Matrix: hue -",
+      "shortName": "Hue-"
+    },
+    {
+      "name": "RGBM_SAI",
+      "title": "RGB Matrix: saturation +",
+      "shortName": "Sat+"
+    },
+    {
+      "name": "RGBM_SAD",
+      "title": "RGB Matrix: saturation -",
+      "shortName": "Sat-"
+    },
+    {
+      "name": "RGBM_VAI",
+      "title": "RGB Matrix: brightness +",
+      "shortName": "Bri+"
+    },
+    {
+      "name": "RGBM_VAD",
+      "title": "RGB Matrix: brightness -",
+      "shortName": "Bri-"
+    },
+    {
+      "name": "RGBM_SPI",
+      "title": "RGB Matrix: speed +",
+      "shortName": "Spd+"
+    },
+    {
+      "name": "RGBM_SPD",
+      "title": "RGB Matrix: speed -",
+      "shortName": "Spd-"
+    },
+    {
+      "name": "ANIM_TOG",
+      "title": "Toggle the flash-animation player",
+      "shortName": "Anim"
+    },
+    {
+      "name": "SCR_MEDIA",
+      "title": "Force the clock vs the now-playing view (toggle)",
+      "shortName": "Media"
+    },
+    {
+      "name": "Play / Next",
+      "title": "Tap: Play/Pause. Double tap: Next track",
+      "shortName": "PP_TD"
+    },
+    {
+      "name": "AltGr SE",
+      "title": "Right Alt with Swedish letters (see Tweaks menu)",
+      "shortName": "AltGr SE"
+    },
+    {
+      "name": "LED Zones",
+      "title": "Lights on/off (Scroll Lock and game mode lights keep working)",
+      "shortName": "LED Zone"
+    },
+    {
+      "name": "Tap/Hold 1",
+      "title": "Tap/Hold 1: tap and hold keycodes are set in Tweaks",
+      "shortName": "TH 1"
+    },
+    {
+      "name": "Tap/Hold 2",
+      "title": "Tap/Hold 2: tap and hold keycodes are set in Tweaks",
+      "shortName": "TH 2"
+    },
+    {
+      "name": "Tap/Hold 3",
+      "title": "Tap/Hold 3: tap and hold keycodes are set in Tweaks",
+      "shortName": "TH 3"
+    },
+    {
+      "name": "Tap/Hold 4",
+      "title": "Tap/Hold 4: tap and hold keycodes are set in Tweaks",
+      "shortName": "TH 4"
+    },
+    {
+      "name": "Game mode",
+      "title": "Toggle game mode (F1 stays F1, remaps off). With Num Lock sync it toggles Num Lock",
+      "shortName": "Game"
+    }
+  ],
+  "menus": [
+    {
+      "label": "Lighting",
+      "content": [
+        {
+          "label": "Backlight",
+          "content": [
+            {
+              "label": "Lights",
+              "type": "dropdown",
+              "options": [
+                "On",
+                "Off"
+              ],
+              "content": [
+                "id_isycat_zone",
+                0,
+                1
+              ]
+            },
+            {
+              "label": "Brightness",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_qmk_rgb_matrix_brightness",
+                3,
+                1
+              ]
+            },
+            {
+              "label": "Effect",
+              "type": "dropdown",
+              "options": [
+                [
+                  "All Off",
+                  0
+                ],
+                [
+                  "Solid Color",
+                  1
+                ],
+                [
+                  "Alphas Mods",
+                  2
+                ],
+                [
+                  "Gradient Up Down",
+                  3
+                ],
+                [
+                  "Gradient Left Right",
+                  4
+                ],
+                [
+                  "Breathing",
+                  5
+                ],
+                [
+                  "Band Sat",
+                  6
+                ],
+                [
+                  "Band Val",
+                  7
+                ],
+                [
+                  "Band Pinwheel Sat",
+                  8
+                ],
+                [
+                  "Band Pinwheel Val",
+                  9
+                ],
+                [
+                  "Band Spiral Sat",
+                  10
+                ],
+                [
+                  "Band Spiral Val",
+                  11
+                ],
+                [
+                  "Cycle All",
+                  12
+                ],
+                [
+                  "Cycle Left Right",
+                  13
+                ],
+                [
+                  "Cycle Up Down",
+                  14
+                ],
+                [
+                  "Rainbow Moving Chevron",
+                  15
+                ],
+                [
+                  "Cycle Out In",
+                  16
+                ],
+                [
+                  "Cycle Out In Dual",
+                  17
+                ],
+                [
+                  "Cycle Pinwheel",
+                  18
+                ],
+                [
+                  "Cycle Spiral",
+                  19
+                ],
+                [
+                  "Dual Beacon",
+                  20
+                ],
+                [
+                  "Rainbow Beacon",
+                  21
+                ],
+                [
+                  "Rainbow Pinwheels",
+                  22
+                ],
+                [
+                  "Raindrops",
+                  23
+                ],
+                [
+                  "Jellybean Raindrops",
+                  24
+                ],
+                [
+                  "Hue Breathing",
+                  25
+                ],
+                [
+                  "Hue Pendulum",
+                  26
+                ],
+                [
+                  "Hue Wave",
+                  27
+                ],
+                [
+                  "Pixel Rain",
+                  28
+                ],
+                [
+                  "Pixel Flow",
+                  29
+                ],
+                [
+                  "Pixel Fractal",
+                  30
+                ],
+                [
+                  "Typing Heatmap",
+                  31
+                ],
+                [
+                  "Digital Rain",
+                  32
+                ],
+                [
+                  "Solid Reactive Simple",
+                  33
+                ],
+                [
+                  "Solid Reactive",
+                  34
+                ],
+                [
+                  "Solid Reactive Wide",
+                  35
+                ],
+                [
+                  "Solid Reactive Multiwide",
+                  36
+                ],
+                [
+                  "Solid Reactive Cross",
+                  37
+                ],
+                [
+                  "Solid Reactive Multicross",
+                  38
+                ],
+                [
+                  "Solid Reactive Nexus",
+                  39
+                ],
+                [
+                  "Solid Reactive Multinexus",
+                  40
+                ],
+                [
+                  "Splash",
+                  41
+                ],
+                [
+                  "Multisplash",
+                  42
+                ],
+                [
+                  "Solid Splash",
+                  43
+                ],
+                [
+                  "Solid Multisplash",
+                  44
+                ]
+              ],
+              "content": [
+                "id_qmk_rgb_matrix_effect",
+                3,
+                2
+              ]
+            },
+            {
+              "showIf": "{id_qmk_rgb_matrix_effect} != 0",
+              "label": "Effect Speed",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_qmk_rgb_matrix_effect_speed",
+                3,
+                3
+              ]
+            },
+            {
+              "showIf": "{id_qmk_rgb_matrix_effect} != 0",
+              "label": "Color",
+              "type": "color",
+              "content": [
+                "id_qmk_rgb_matrix_color",
+                3,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "label": "Per-key colours",
+          "content": [
+            {
+              "label": "Show painted key colours",
+              "type": "toggle",
+              "content": [
+                "id_isycat_paint_on",
+                0,
+                19
+              ]
+            },
+            {
+              "label": "Brush",
+              "type": "dropdown",
+              "options": [
+                "Clear (show effect)",
+                "Colour 1",
+                "Colour 2",
+                "Colour 3",
+                "Colour 4",
+                "Colour 5",
+                "Colour 6",
+                "Colour 7",
+                "Colour 8",
+                "Colour 9",
+                "Colour 10",
+                "Colour 11",
+                "Colour 12",
+                "Colour 13",
+                "Colour 14",
+                "Colour 15 (default: off)"
+              ],
+              "content": [
+                "id_isycat_paint_brush",
+                0,
+                17
+              ]
+            },
+            {
+              "label": "Paint mode: press keys on the keyboard to paint them (no typing; ends after 1 min idle)",
+              "type": "toggle",
+              "content": [
+                "id_isycat_paint_mode",
+                0,
+                16
+              ]
+            },
+            {
+              "label": "Clear all painted keys",
+              "type": "button",
+              "options": [
+                1
+              ],
+              "content": [
+                "id_isycat_paint_clear",
+                0,
+                20
+              ]
+            },
+            {
+              "label": "Fill all keys with the brush",
+              "type": "button",
+              "options": [
+                2
+              ],
+              "content": [
+                "id_isycat_paint_fill",
+                0,
+                20
+              ]
+            }
+          ]
+        },
+        {
+          "label": "Colour palette",
+          "content": [
+            {
+              "label": "Colour 1",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_1",
+                0,
+                21
+              ]
+            },
+            {
+              "label": "Colour 1 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_1",
+                0,
+                36
+              ]
+            },
+            {
+              "label": "Colour 2",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_2",
+                0,
+                22
+              ]
+            },
+            {
+              "label": "Colour 2 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_2",
+                0,
+                37
+              ]
+            },
+            {
+              "label": "Colour 3",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_3",
+                0,
+                23
+              ]
+            },
+            {
+              "label": "Colour 3 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_3",
+                0,
+                38
+              ]
+            },
+            {
+              "label": "Colour 4",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_4",
+                0,
+                24
+              ]
+            },
+            {
+              "label": "Colour 4 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_4",
+                0,
+                39
+              ]
+            },
+            {
+              "label": "Colour 5",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_5",
+                0,
+                25
+              ]
+            },
+            {
+              "label": "Colour 5 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_5",
+                0,
+                40
+              ]
+            },
+            {
+              "label": "Colour 6",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_6",
+                0,
+                26
+              ]
+            },
+            {
+              "label": "Colour 6 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_6",
+                0,
+                41
+              ]
+            },
+            {
+              "label": "Colour 7",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_7",
+                0,
+                27
+              ]
+            },
+            {
+              "label": "Colour 7 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_7",
+                0,
+                42
+              ]
+            },
+            {
+              "label": "Colour 8",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_8",
+                0,
+                28
+              ]
+            },
+            {
+              "label": "Colour 8 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_8",
+                0,
+                43
+              ]
+            },
+            {
+              "label": "Colour 9",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_9",
+                0,
+                29
+              ]
+            },
+            {
+              "label": "Colour 9 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_9",
+                0,
+                44
+              ]
+            },
+            {
+              "label": "Colour 10",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_10",
+                0,
+                30
+              ]
+            },
+            {
+              "label": "Colour 10 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_10",
+                0,
+                45
+              ]
+            },
+            {
+              "label": "Colour 11",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_11",
+                0,
+                31
+              ]
+            },
+            {
+              "label": "Colour 11 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_11",
+                0,
+                46
+              ]
+            },
+            {
+              "label": "Colour 12",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_12",
+                0,
+                32
+              ]
+            },
+            {
+              "label": "Colour 12 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_12",
+                0,
+                47
+              ]
+            },
+            {
+              "label": "Colour 13",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_13",
+                0,
+                33
+              ]
+            },
+            {
+              "label": "Colour 13 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_13",
+                0,
+                48
+              ]
+            },
+            {
+              "label": "Colour 14",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_14",
+                0,
+                34
+              ]
+            },
+            {
+              "label": "Colour 14 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_14",
+                0,
+                49
+              ]
+            },
+            {
+              "label": "Colour 15",
+              "type": "color",
+              "content": [
+                "id_isycat_palette_15",
+                0,
+                35
+              ]
+            },
+            {
+              "label": "Colour 15 brightness (0 = off)",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_palette_val_15",
+                0,
+                50
+              ]
+            }
+          ]
+        },
+        {
+          "label": "Sleep",
+          "content": [
+            {
+              "label": "Lights and screen sleep after (minutes, 0 = never)",
+              "type": "range",
+              "options": [
+                0,
+                60
+              ],
+              "content": [
+                "id_isycat_sleep_minutes",
+                0,
+                68
+              ]
+            },
+            {
+              "label": "Stay awake while Scroll Lock is on (mic muted)",
+              "type": "toggle",
+              "content": [
+                "id_isycat_sleep_scrl_awake",
+                0,
+                69
+              ]
+            }
+          ]
+        },
+        {
+          "label": "Scroll Lock indicator",
+          "content": [
+            {
+              "label": "Show Scroll Lock on the key that has Scroll Lock (base layer, else Fn layer)",
+              "type": "toggle",
+              "content": [
+                "id_isycat_ind_enabled",
+                0,
+                2
+              ]
+            },
+            {
+              "showIf": "{id_isycat_ind_enabled} == 1",
+              "label": "Color",
+              "type": "color",
+              "content": [
+                "id_isycat_ind_color",
+                0,
+                3
+              ]
+            },
+            {
+              "showIf": "{id_isycat_ind_enabled} == 1",
+              "label": "Brightness",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_ind_brightness",
+                0,
+                4
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "Tweaks",
+      "content": [
+        {
+          "label": "Navigation",
+          "content": [
+            {
+              "label": "Ctrl + PgUp/PgDn = Ctrl + Home/End",
+              "type": "toggle",
+              "content": [
+                "id_isycat_nav_pgupdn",
+                0,
+                5
+              ]
+            },
+            {
+              "label": "Ctrl + [Shift] + Left/Right = [Shift] + Home/End",
+              "type": "toggle",
+              "content": [
+                "id_isycat_nav_ctrl_arrows",
+                0,
+                8
+              ]
+            },
+            {
+              "label": "Alt + [Shift] + Left/Right = word jump (Ctrl + [Shift] + Left/Right)",
+              "type": "toggle",
+              "content": [
+                "id_isycat_nav_alt_arrows",
+                0,
+                9
+              ]
+            },
+            {
+              "label": "Ctrl + Alt + Left/Right = previous/next tab",
+              "type": "toggle",
+              "content": [
+                "id_isycat_nav_tab_arrows",
+                0,
+                10
+              ]
+            }
+          ]
+        },
+        {
+          "label": "Swedish letters",
+          "content": [
+            {
+              "label": "AltGr SE key + a / o / e = å / ö / ä",
+              "type": "toggle",
+              "content": [
+                "id_isycat_swe_enabled",
+                0,
+                6
+              ]
+            },
+            {
+              "showIf": "{id_isycat_swe_enabled} == 1",
+              "label": "Also on a plain Right Alt key",
+              "type": "toggle",
+              "content": [
+                "id_isycat_swe_plain_ralt",
+                0,
+                11
+              ]
+            },
+            {
+              "showIf": "{id_isycat_swe_enabled} == 1",
+              "label": "Also with [ ; ' (å ö ä)",
+              "type": "toggle",
+              "content": [
+                "id_isycat_swe_alt_keys",
+                0,
+                12
+              ]
+            }
+          ]
+        },
+        {
+          "label": "Tap/Hold keys",
+          "content": [
+            {
+              "label": "Tap/Hold 1: on tap",
+              "type": "keycode",
+              "content": [
+                "id_isycat_th_tap_1",
+                0,
+                51
+              ]
+            },
+            {
+              "label": "Tap/Hold 1: while held",
+              "type": "keycode",
+              "content": [
+                "id_isycat_th_hold_1",
+                0,
+                55
+              ]
+            },
+            {
+              "label": "Tap/Hold 2: on tap",
+              "type": "keycode",
+              "content": [
+                "id_isycat_th_tap_2",
+                0,
+                52
+              ]
+            },
+            {
+              "label": "Tap/Hold 2: while held",
+              "type": "keycode",
+              "content": [
+                "id_isycat_th_hold_2",
+                0,
+                56
+              ]
+            },
+            {
+              "label": "Tap/Hold 3: on tap",
+              "type": "keycode",
+              "content": [
+                "id_isycat_th_tap_3",
+                0,
+                53
+              ]
+            },
+            {
+              "label": "Tap/Hold 3: while held",
+              "type": "keycode",
+              "content": [
+                "id_isycat_th_hold_3",
+                0,
+                57
+              ]
+            },
+            {
+              "label": "Tap/Hold 4: on tap",
+              "type": "keycode",
+              "content": [
+                "id_isycat_th_tap_4",
+                0,
+                54
+              ]
+            },
+            {
+              "label": "Tap/Hold 4: while held",
+              "type": "keycode",
+              "content": [
+                "id_isycat_th_hold_4",
+                0,
+                58
+              ]
+            },
+            {
+              "label": "Hold after (x10 ms)",
+              "type": "range",
+              "options": [
+                5,
+                100
+              ],
+              "content": [
+                "id_isycat_th_term",
+                0,
+                59
+              ]
+            }
+          ]
+        },
+        {
+          "label": "Game mode",
+          "content": [
+            {
+              "label": "Game mode on (now)",
+              "type": "toggle",
+              "content": [
+                "id_isycat_game_mode",
+                0,
+                60
+              ]
+            },
+            {
+              "label": "Follow host Num Lock (AHK sets it in fullscreen apps)",
+              "type": "toggle",
+              "content": [
+                "id_isycat_game_numlock",
+                0,
+                65
+              ]
+            },
+            {
+              "label": "F1 sends the key below outside game mode",
+              "type": "toggle",
+              "content": [
+                "id_isycat_game_f1",
+                0,
+                61
+              ]
+            },
+            {
+              "showIf": "{id_isycat_game_f1} == 1",
+              "label": "F1 outside game mode",
+              "type": "keycode",
+              "content": [
+                "id_isycat_game_f1_target",
+                0,
+                62
+              ]
+            },
+            {
+              "label": "Game mode turns off nav remaps and Swedish letters",
+              "type": "toggle",
+              "content": [
+                "id_isycat_game_bypass",
+                0,
+                63
+              ]
+            },
+            {
+              "label": "Light up F1 in game mode",
+              "type": "toggle",
+              "content": [
+                "id_isycat_game_led",
+                0,
+                64
+              ]
+            },
+            {
+              "showIf": "{id_isycat_game_led} == 1",
+              "label": "F1 light colour",
+              "type": "color",
+              "content": [
+                "id_isycat_game_color",
+                0,
+                66
+              ]
+            },
+            {
+              "showIf": "{id_isycat_game_led} == 1",
+              "label": "F1 light brightness",
+              "type": "range",
+              "options": [
+                0,
+                255
+              ],
+              "content": [
+                "id_isycat_game_brightness",
+                0,
+                67
+              ]
+            }
+          ]
+        },
+        {
+          "label": "Play / Next key",
+          "content": [
+            {
+              "label": "Double-tap window (x10 ms)",
+              "type": "range",
+              "options": [
+                10,
+                100
+              ],
+              "content": [
+                "id_isycat_td_term",
+                0,
+                7
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "layouts": {
+    "keymap": [
+      [
+        "0,0",
+        {
+          "x": 0.25
+        },
+        "0,1",
+        "0,2",
+        "0,3",
+        "0,4",
+        {
+          "x": 0.25
+        },
+        "0,5",
+        "0,6",
+        "0,7",
+        "0,8",
+        {
+          "x": 0.25
+        },
+        "0,9",
+        "0,10",
+        "0,11",
+        "0,12",
+        {
+          "x": 0.25
+        },
+        "0,13",
+        {
+          "x": 0.5
+        },
+        "0,14\n\n\n\n\n\n\n\n\ne0"
+      ],
+      [
+        {
+          "y": 0.25
+        },
+        "1,0",
+        "1,1",
+        "1,2",
+        "1,3",
+        "1,4",
+        "1,5",
+        "1,6",
+        "1,7",
+        "1,8",
+        "1,9",
+        "1,10",
+        "1,11",
+        "1,12",
+        {
+          "w": 2.0
+        },
+        "1,13",
+        {
+          "x": 0.5
+        },
+        "1,14"
+      ],
+      [
+        {
+          "w": 1.5
+        },
+        "2,0",
+        "2,1",
+        "2,2",
+        "2,3",
+        "2,4",
+        "2,5",
+        "2,6",
+        "2,7",
+        "2,8",
+        "2,9",
+        "2,10",
+        "2,11",
+        "2,12",
+        {
+          "w": 1.5
+        },
+        "2,13",
+        {
+          "x": 0.5
+        },
+        "2,14"
+      ],
+      [
+        {
+          "w": 1.75
+        },
+        "3,0",
+        "3,1",
+        "3,2",
+        "3,3",
+        "3,4",
+        "3,5",
+        "3,6",
+        "3,7",
+        "3,8",
+        "3,9",
+        "3,10",
+        "3,11",
+        {
+          "w": 2.25
+        },
+        "3,13",
+        {
+          "x": 0.5
+        },
+        "3,14"
+      ],
+      [
+        {
+          "w": 2.25
+        },
+        "4,0",
+        "4,2",
+        "4,3",
+        "4,4",
+        "4,5",
+        "4,6",
+        "4,7",
+        "4,8",
+        "4,9",
+        "4,10",
+        "4,11",
+        {
+          "w": 1.75
+        },
+        "4,12",
+        {
+          "x": 0.25,
+          "y": 0.25
+        },
+        "4,13"
+      ],
+      [
+        {
+          "y": -0.25,
+          "w": 1.25
+        },
+        "5,0",
+        {
+          "w": 1.25
+        },
+        "5,1",
+        {
+          "w": 1.25
+        },
+        "5,2",
+        {
+          "w": 6.25
+        },
+        "5,6",
+        "5,9",
+        "5,10",
+        "5,11",
+        {
+          "x": 0.25,
+          "y": 0.25
+        },
+        "5,12",
+        "5,13",
+        "5,14"
+      ]
+    ]
+  }
+}

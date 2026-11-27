@@ -504,6 +504,12 @@ __attribute__((weak)) void display_housekeeping_task(void) {}
 
 static void kb_sleep_task(void);   // idle-sleep (B-lite) + USB-suspend (A); below
 
+// Idle-sleep timeout in ms (0 = never). Keymaps can override this to make the
+// timeout configurable at runtime (e.g. from VIA).
+__attribute__((weak)) uint32_t display_sleep_timeout_ms(void) {
+    return DISPLAY_SLEEP_TIMEOUT_MS;
+}
+
 void housekeeping_task_kb(void) {
 
     // Throttle the housekeeping to 10 Hz
@@ -577,8 +583,8 @@ static void kb_sleep_task(void) {
 
     bool host_suspended = (connection_get_host() == CONNECTION_HOST_USB) &&
                           (USB_DRIVER.state == USB_SUSPENDED);
-    bool idle = (DISPLAY_SLEEP_TIMEOUT_MS > 0) &&
-                (last_input_activity_elapsed() >= (uint32_t)DISPLAY_SLEEP_TIMEOUT_MS);
+    uint32_t timeout = display_sleep_timeout_ms();
+    bool idle = (timeout > 0) && (last_input_activity_elapsed() >= timeout);
     bool want_sleep = host_suspended || idle;
 
     if (want_sleep && !asleep) {
