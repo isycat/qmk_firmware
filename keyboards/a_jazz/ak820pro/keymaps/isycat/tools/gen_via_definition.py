@@ -87,6 +87,8 @@ definition = {
                 {"label": "Lights and screen sleep after (minutes, 0 = never)", "type": "range", "options": [0, 60],
                  "content": ["id_isycat_sleep_minutes", 0, 68]},
                 toggle("Stay awake while Scroll Lock is on (mic muted)", "id_isycat_sleep_scrl_awake", 69),
+                {"label": "On battery: deep sleep after (minutes, 0 = off; experimental)", "type": "range",
+                 "options": [0, 120], "content": ["id_isycat_deep_sleep_minutes", 0, 70]},
             ]},
             {"label": "Scroll Lock indicator", "content": [
                 toggle("Show Scroll Lock on the key that has Scroll Lock (base layer, else Fn layer)", "id_isycat_ind_enabled", 2),

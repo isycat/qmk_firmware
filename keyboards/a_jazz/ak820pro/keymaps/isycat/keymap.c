@@ -17,6 +17,9 @@
 #include "graphics/lcd_bus.h"
 #include "lib/lib8tion/lib8tion.h"
 #include "keymap_introspection.h"
+#include "connection.h"
+#include "usb_main.h"
+#include "deep_sleep.h"
 
 // Board-level VIA handler in ak820pro.c (clock, LCD flash and now-playing channels)
 void via_custom_value_command_kb(uint8_t *data, uint8_t length);
@@ -137,7 +140,8 @@ typedef struct __attribute__((packed)) {
     uint16_t th_tap[TH_COUNT];  // Tap/Hold keys: keycode sent on tap
     uint16_t th_hold[TH_COUNT]; // Tap/Hold keys: keycode held on hold
     uint16_t f1_target;         // what F1 sends outside game mode
-    uint8_t  future[39];        // headroom so later settings don't move VIA's data
+    uint8_t  deep_min;          // MCU deep sleep on battery after this many idle minutes, 0 = off
+    uint8_t  future[38];        // headroom so later settings don't move VIA's data
 } user_config_t;
 
 _Static_assert(sizeof(user_config_t) == EECONFIG_USER_DATA_SIZE, "EECONFIG_USER_DATA_SIZE mismatch");
@@ -346,10 +350,23 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
 
 /* Lights and screen sleep after the idle time set in VIA, except while Scroll
  * Lock is on (mic muted) if that option is set, so the mute light stays visible. */
-uint32_t display_sleep_timeout_ms(void) {
-    if ((cfg.sleep_flags & SLEEP_SCRL_AWAKE) && cfg.ind_enabled && host_keyboard_led_state().scroll_lock) return 0;
-    return (uint32_t)cfg.sleep_min * 60000u;
+static bool stay_awake(void) {
+    return (cfg.sleep_flags & SLEEP_SCRL_AWAKE) && cfg.ind_enabled && host_keyboard_led_state().scroll_lock;
 }
+
+static bool on_battery(void) {
+    return connection_get_host() != CONNECTION_HOST_USB && USB_DRIVER.state != USB_ACTIVE;
+}
+
+uint32_t display_sleep_timeout_ms(void) {
+    if (stay_awake()) return 0;
+    uint32_t ms = (uint32_t)cfg.sleep_min * 60000u;
+    // Deep sleep needs the lights and screen off first, so they never stay on longer than that.
+    uint32_t deep = (uint32_t)cfg.deep_min * 60000u;
+    if (deep && on_battery() && (ms == 0 || deep < ms)) ms = deep;
+    return ms;
+}
+
 
 /* ------------------------------------------------------------------------- */
 /* Play/Next tap dance                                                       */
@@ -821,6 +838,23 @@ skip_remaps:
     }
 }
 
+/* Deep sleep (see deep_sleep.c): on battery only, after the lights and screen
+ * have gone dark. A wake-up that brings no key press lets it sleep again 10 s
+ * later; the clock stands still while asleep, so idle time doesn't grow. */
+static bool     deep_woke;
+static uint32_t deep_wake_timer;
+
+static void deep_sleep_task(void) {
+    if (!cfg.deep_min || stay_awake() || !on_battery()) return;
+    if (last_input_activity_elapsed() < (uint32_t)cfg.deep_min * 60000u + 2000u) return;
+    if (!rgb_matrix_get_suspend_state()) return; // lights not blanked yet
+    if (deep_woke && timer_elapsed32(deep_wake_timer) < 10000) return;
+    if (cfg_dirty || lcd_blit_busy() || pp_taps || th_state != TH_IDLE) return;
+    deep_sleep_enter();
+    deep_woke       = true;
+    deep_wake_timer = timer_read32();
+}
+
 void housekeeping_task_user(void) {
     pp_task();
     th_task();
@@ -828,6 +862,7 @@ void housekeeping_task_user(void) {
     numlock_sync_task();
     led_scan_task();
     cfg_flush_task();
+    deep_sleep_task();
 }
 
 void keyboard_post_init_user(void) {
@@ -879,6 +914,7 @@ enum via_isycat_value {
 #define id_game_brightness 67
 #define id_sleep_minutes 68
 #define id_sleep_scrl_awake 69
+#define id_deep_sleep_minutes 70
 
 enum paint_tool { TOOL_NONE = 0, TOOL_CLEAR_ALL, TOOL_FILL_ALL };
 
@@ -941,6 +977,7 @@ static void isycat_get(uint8_t id, uint8_t *v) {
         case id_game_brightness: v[0] = cfg.game_val; break;
         case id_sleep_minutes: v[0] = cfg.sleep_min; break;
         case id_sleep_scrl_awake: v[0] = flag_get(cfg.sleep_flags, SLEEP_SCRL_AWAKE); break;
+        case id_deep_sleep_minutes: v[0] = cfg.deep_min; break;
         case id_td_term: v[0] = cfg.td_term_10ms; break;
     }
 }
@@ -1001,6 +1038,7 @@ static void isycat_set(uint8_t id, uint8_t *v) {
         case id_game_brightness: cfg.game_val = v[0]; break;
         case id_sleep_minutes: cfg.sleep_min = v[0] > 60 ? 60 : v[0]; break;
         case id_sleep_scrl_awake: flag_set(&cfg.sleep_flags, SLEEP_SCRL_AWAKE, v[0]); break;
+        case id_deep_sleep_minutes: cfg.deep_min = v[0] > 120 ? 120 : v[0]; break;
         case id_td_term: cfg.td_term_10ms = v[0] < 10 ? 10 : v[0]; break;
     }
 }

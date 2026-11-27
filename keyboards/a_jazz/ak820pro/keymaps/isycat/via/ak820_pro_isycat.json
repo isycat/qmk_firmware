@@ -826,6 +826,19 @@
                 0,
                 69
               ]
+            },
+            {
+              "label": "On battery: deep sleep after (minutes, 0 = off; experimental)",
+              "type": "range",
+              "options": [
+                0,
+                120
+              ],
+              "content": [
+                "id_isycat_deep_sleep_minutes",
+                0,
+                70
+              ]
             }
           ]
         },
