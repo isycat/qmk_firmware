@@ -1,8 +1,7 @@
 /* Drop CTRL v1 (massdrop/ctrl) VIA keymap for isycat.
  *
  * Replaces the AutoHotkey macros with real firmware behaviour:
- *   - Navigation remaps (Ctrl+PgUp/PgDn, Ctrl/Alt+[Shift]+Left/Right, Ctrl+Alt+Left/Right,
- *     Win+Ctrl+Space emoji picker)
+ *   - Navigation remaps (Ctrl+PgUp/PgDn, Ctrl/Alt+[Shift]+Left/Right, Ctrl+Alt+Left/Right)
  *   - Pause key tap dance: 1 tap = Play/Pause, 2 taps = Next track
  *   - AltGr Swedish letters: RAlt + a/[ = å, RAlt + o/; = ö, RAlt + e/' = ä (Shift = capital)
  *   - Scroll Lock state shown on the Scroll Lock key LED (red by default)
@@ -41,15 +40,30 @@ typedef struct {
     uint8_t ind_hue;      // Scroll Lock indicator colour
     uint8_t ind_sat;
     uint8_t ind_val;      // Scroll Lock indicator brightness
-    uint8_t nav_enabled;  // Navigation remaps on/off
-    uint8_t swe_enabled;  // Swedish AltGr letters on/off
+    uint8_t nav_flags;    // NAV_* bits: which navigation remaps are on
+    uint8_t swe_flags;    // SWE_* bits: Swedish letter options
     uint8_t td_term_10ms; // Pause double-tap window in 10 ms units
     uint8_t reserved[3];
 } user_config_t;
 
 _Static_assert(sizeof(user_config_t) == EECONFIG_USER_DATA_SIZE, "EECONFIG_USER_DATA_SIZE mismatch");
 
-#define USER_CONFIG_MAGIC 0xC7
+#define USER_CONFIG_MAGIC 0xC8
+
+enum nav_flag {
+    NAV_PGUPDN    = 1 << 0, // Ctrl+PgUp/PgDn -> Ctrl+Home/End
+    NAV_CTRL_ARR  = 1 << 1, // Ctrl+[Shift]+Left/Right -> [Shift]+Home/End
+    NAV_ALT_ARR   = 1 << 2, // Alt+[Shift]+Left/Right -> Ctrl+[Shift]+Left/Right
+    NAV_TAB_ARR   = 1 << 3, // Ctrl+Alt+Left/Right -> Ctrl+[Shift]+Tab
+    NAV_ALL       = NAV_PGUPDN | NAV_CTRL_ARR | NAV_ALT_ARR | NAV_TAB_ARR,
+};
+
+enum swe_flag {
+    SWE_ON         = 1 << 0, // Swedish letters on the AltGr SE key
+    SWE_PLAIN_RALT = 1 << 1, // ...and on a plain Right Alt key
+    SWE_ALT_KEYS   = 1 << 2, // [ ; ' as well as a o e
+    SWE_ALL        = SWE_ON | SWE_PLAIN_RALT | SWE_ALT_KEYS,
+};
 
 static user_config_t cfg;
 
@@ -61,8 +75,8 @@ static void cfg_defaults(void) {
         .ind_hue      = 0,
         .ind_sat      = 255,
         .ind_val      = 255,
-        .nav_enabled  = 1,
-        .swe_enabled  = 1,
+        .nav_flags    = NAV_ALL,
+        .swe_flags    = SWE_ALL,
         .td_term_10ms = 30,
     };
 }
@@ -184,11 +198,11 @@ static void send_alt_code(const char *digits) {
 static int8_t swe_index(uint16_t keycode) {
     switch (keycode) {
         case KC_A: return 0;
-        case KC_LBRC: return 1; // å
+        case KC_LBRC: return (cfg.swe_flags & SWE_ALT_KEYS) ? 1 : -1; // å
         case KC_O: return 2;
-        case KC_SCLN: return 3; // ö
+        case KC_SCLN: return (cfg.swe_flags & SWE_ALT_KEYS) ? 3 : -1; // ö
         case KC_E: return 4;
-        case KC_QUOT: return 5; // ä
+        case KC_QUOT: return (cfg.swe_flags & SWE_ALT_KEYS) ? 5 : -1; // ä
         default: return -1;
     }
 }
@@ -248,26 +262,26 @@ static bool nav_lookup(uint16_t keycode, uint8_t mods, uint16_t *out, uint8_t *r
         case KC_PGUP:
         case KC_PGDN:
             // Ctrl+PgUp/PgDn -> Ctrl+Home/End (other modifiers pass through)
-            if (!ctrl) return false;
+            if (!ctrl || !(cfg.nav_flags & NAV_PGUPDN)) return false;
             *out = keycode == KC_PGUP ? KC_HOME : KC_END;
             return true;
         case KC_LEFT:
         case KC_RGHT:
             if (gui) return false;
-            if (ctrl && !alt) {
+            if (ctrl && !alt && (cfg.nav_flags & NAV_CTRL_ARR)) {
                 // Ctrl+[Shift]+Left/Right -> [Shift]+Home/End
                 *out    = left ? KC_HOME : KC_END;
                 *remove = mods & MOD_MASK_CTRL;
                 return true;
             }
-            if (alt && !ctrl) {
+            if (alt && !ctrl && (cfg.nav_flags & NAV_ALT_ARR)) {
                 // Alt+[Shift]+Left/Right -> Ctrl+[Shift]+Left/Right (word jump)
                 *out    = keycode;
                 *remove = mods & MOD_MASK_ALT;
                 *add    = MOD_BIT(KC_LCTL);
                 return true;
             }
-            if (alt && ctrl && !shift) {
+            if (alt && ctrl && !shift && (cfg.nav_flags & NAV_TAB_ARR)) {
                 // Ctrl+Alt+Left/Right -> Ctrl+Shift+Tab / Ctrl+Tab
                 *out    = KC_TAB;
                 *remove = mods & MOD_MASK_ALT;
@@ -275,12 +289,6 @@ static bool nav_lookup(uint16_t keycode, uint8_t mods, uint16_t *out, uint8_t *r
                 return true;
             }
             return false;
-        case KC_SPC:
-            // Win+Ctrl+Space -> Win+; (Windows emoji picker)
-            if (!(ctrl && gui) || alt || shift) return false;
-            *out    = KC_SCLN;
-            *remove = mods & MOD_MASK_CTRL;
-            return true;
         default:
             return false;
     }
@@ -291,7 +299,7 @@ static bool nav_process(uint16_t keycode, keyrecord_t *record) {
         uint16_t out;
         uint8_t  remove, add;
         uint8_t  mods = get_mods() | nav_suppressed;
-        if (nav_trigger || !cfg.nav_enabled || !nav_lookup(keycode, mods, &out, &remove, &add)) {
+        if (nav_trigger || !nav_lookup(keycode, mods, &out, &remove, &add)) {
             nav_restore();
             return true;
         }
@@ -364,7 +372,8 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     // --- Right Alt / Swedish letters -------------------------------------
     // A plain Right Alt in the keymap gets the same treatment, so the feature
     // survives loading an older VIA layout that still has KC_RALT there.
-    if (keycode == CK_SWALT || (keycode == KC_RALT && cfg.swe_enabled)) {
+    bool swe_on_ralt = (cfg.swe_flags & SWE_ON) && (cfg.swe_flags & SWE_PLAIN_RALT);
+    if (keycode == CK_SWALT || (keycode == KC_RALT && (swe_on_ralt || (!pressed && swalt_held)))) {
         if (pressed) {
             swalt_held = true;
             swalt_sent = false;
@@ -383,7 +392,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             return false;
         }
         if (pressed && swalt_held && !swalt_sent) {
-            if (idx >= 0 && cfg.swe_enabled) {
+            if (idx >= 0 && (cfg.swe_flags & SWE_ON)) {
                 swe_type(idx, MODS_SHIFT);
                 swe_swallowed |= (1 << idx);
                 return false;
@@ -394,7 +403,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
     // --- Navigation remaps -----------------------------------------------
     if (!is_basic_mod(keycode)) {
-        bool is_trigger = keycode == KC_PGUP || keycode == KC_PGDN || keycode == KC_LEFT || keycode == KC_RGHT || keycode == KC_SPC;
+        bool is_trigger = keycode == KC_PGUP || keycode == KC_PGDN || keycode == KC_LEFT || keycode == KC_RGHT;
         if (pressed && !is_trigger) nav_restore();
         if (is_trigger && !nav_process(keycode, record)) return false;
     }
@@ -469,10 +478,27 @@ enum via_isycat_value {
     id_ind_enabled,
     id_ind_color,
     id_ind_brightness,
-    id_nav_enabled,
+    id_nav_pgupdn,
     id_swe_enabled,
     id_td_term,
+    id_nav_ctrl_arrows,
+    id_nav_alt_arrows,
+    id_nav_tab_arrows,
+    id_swe_plain_ralt,
+    id_swe_alt_keys,
 };
+
+static uint8_t flag_get(uint8_t field, uint8_t bit) {
+    return (field & bit) ? 1 : 0;
+}
+
+static void flag_set(uint8_t *field, uint8_t bit, uint8_t on) {
+    if (on) {
+        *field |= bit;
+    } else {
+        *field &= ~bit;
+    }
+}
 
 static void isycat_get(uint8_t id, uint8_t *v) {
     switch (id) {
@@ -480,8 +506,13 @@ static void isycat_get(uint8_t id, uint8_t *v) {
         case id_ind_enabled: v[0] = cfg.ind_enabled; break;
         case id_ind_color: v[0] = cfg.ind_hue; v[1] = cfg.ind_sat; break;
         case id_ind_brightness: v[0] = cfg.ind_val; break;
-        case id_nav_enabled: v[0] = cfg.nav_enabled; break;
-        case id_swe_enabled: v[0] = cfg.swe_enabled; break;
+        case id_nav_pgupdn: v[0] = flag_get(cfg.nav_flags, NAV_PGUPDN); break;
+        case id_nav_ctrl_arrows: v[0] = flag_get(cfg.nav_flags, NAV_CTRL_ARR); break;
+        case id_nav_alt_arrows: v[0] = flag_get(cfg.nav_flags, NAV_ALT_ARR); break;
+        case id_nav_tab_arrows: v[0] = flag_get(cfg.nav_flags, NAV_TAB_ARR); break;
+        case id_swe_enabled: v[0] = flag_get(cfg.swe_flags, SWE_ON); break;
+        case id_swe_plain_ralt: v[0] = flag_get(cfg.swe_flags, SWE_PLAIN_RALT); break;
+        case id_swe_alt_keys: v[0] = flag_get(cfg.swe_flags, SWE_ALT_KEYS); break;
         case id_td_term: v[0] = cfg.td_term_10ms; break;
     }
 }
@@ -492,8 +523,13 @@ static void isycat_set(uint8_t id, uint8_t *v) {
         case id_ind_enabled: cfg.ind_enabled = v[0] ? 1 : 0; break;
         case id_ind_color: cfg.ind_hue = v[0]; cfg.ind_sat = v[1]; break;
         case id_ind_brightness: cfg.ind_val = v[0]; break;
-        case id_nav_enabled: cfg.nav_enabled = v[0] ? 1 : 0; break;
-        case id_swe_enabled: cfg.swe_enabled = v[0] ? 1 : 0; break;
+        case id_nav_pgupdn: flag_set(&cfg.nav_flags, NAV_PGUPDN, v[0]); break;
+        case id_nav_ctrl_arrows: flag_set(&cfg.nav_flags, NAV_CTRL_ARR, v[0]); break;
+        case id_nav_alt_arrows: flag_set(&cfg.nav_flags, NAV_ALT_ARR, v[0]); break;
+        case id_nav_tab_arrows: flag_set(&cfg.nav_flags, NAV_TAB_ARR, v[0]); break;
+        case id_swe_enabled: flag_set(&cfg.swe_flags, SWE_ON, v[0]); break;
+        case id_swe_plain_ralt: flag_set(&cfg.swe_flags, SWE_PLAIN_RALT, v[0]); break;
+        case id_swe_alt_keys: flag_set(&cfg.swe_flags, SWE_ALT_KEYS, v[0]); break;
         case id_td_term: cfg.td_term_10ms = v[0] < 10 ? 10 : v[0]; break;
     }
 }

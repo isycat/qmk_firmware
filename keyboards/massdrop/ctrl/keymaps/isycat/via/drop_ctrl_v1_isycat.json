@@ -52,7 +52,7 @@
     },
     {
       "name": "AltGr SE",
-      "title": "Right Alt with Swedish letters: a/[ = å, o/; = ö, e/' = ä (Shift for capitals)",
+      "title": "Right Alt with Swedish letters (see Tweaks menu)",
       "shortName": "AltGr SE"
     },
     {
@@ -357,19 +357,51 @@
       "label": "Tweaks",
       "content": [
         {
-          "label": "Keyboard tweaks",
+          "label": "Navigation",
           "content": [
             {
-              "label": "Navigation remaps (Ctrl/Alt + arrows, Ctrl + PgUp/PgDn)",
+              "label": "Ctrl + PgUp/PgDn = Ctrl + Home/End",
               "type": "toggle",
               "content": [
-                "id_isycat_nav_enabled",
+                "id_isycat_nav_pgupdn",
                 0,
                 5
               ]
             },
             {
-              "label": "Swedish letters on AltGr SE key",
+              "label": "Ctrl + [Shift] + Left/Right = [Shift] + Home/End",
+              "type": "toggle",
+              "content": [
+                "id_isycat_nav_ctrl_arrows",
+                0,
+                8
+              ]
+            },
+            {
+              "label": "Alt + [Shift] + Left/Right = word jump (Ctrl + [Shift] + Left/Right)",
+              "type": "toggle",
+              "content": [
+                "id_isycat_nav_alt_arrows",
+                0,
+                9
+              ]
+            },
+            {
+              "label": "Ctrl + Alt + Left/Right = previous/next tab",
+              "type": "toggle",
+              "content": [
+                "id_isycat_nav_tab_arrows",
+                0,
+                10
+              ]
+            }
+          ]
+        },
+        {
+          "label": "Swedish letters",
+          "content": [
+            {
+              "label": "AltGr SE key + a / o / e = å / ö / ä",
               "type": "toggle",
               "content": [
                 "id_isycat_swe_enabled",
@@ -378,7 +410,32 @@
               ]
             },
             {
-              "label": "Play / Next double-tap window (x10 ms)",
+              "showIf": "{id_isycat_swe_enabled} == 1",
+              "label": "Also on a plain Right Alt key",
+              "type": "toggle",
+              "content": [
+                "id_isycat_swe_plain_ralt",
+                0,
+                11
+              ]
+            },
+            {
+              "showIf": "{id_isycat_swe_enabled} == 1",
+              "label": "Also with [ ; ' (å ö ä)",
+              "type": "toggle",
+              "content": [
+                "id_isycat_swe_alt_keys",
+                0,
+                12
+              ]
+            }
+          ]
+        },
+        {
+          "label": "Play / Next key",
+          "content": [
+            {
+              "label": "Double-tap window (x10 ms)",
               "type": "range",
               "options": [
                 10,
