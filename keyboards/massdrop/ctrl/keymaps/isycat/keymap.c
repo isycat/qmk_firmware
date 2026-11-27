@@ -349,7 +349,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     }
 
     // --- Right Alt / Swedish letters -------------------------------------
-    if (keycode == CK_SWALT) {
+    // A plain Right Alt in the keymap gets the same treatment, so the feature
+    // survives loading an older VIA layout that still has KC_RALT there.
+    if (keycode == CK_SWALT || (keycode == KC_RALT && cfg.swe_enabled)) {
         if (pressed) {
             swalt_held = true;
             swalt_sent = false;
