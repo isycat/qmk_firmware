@@ -20,6 +20,7 @@
 #include "connection.h"
 #include "usb_main.h"
 #include "deep_sleep.h"
+#include "bluetooth/ch582f_ajazz.h"
 
 // Board-level VIA handler in ak820pro.c (clock, LCD flash and now-playing channels)
 void via_custom_value_command_kb(uint8_t *data, uint8_t length);
@@ -404,7 +405,77 @@ static bool    swalt_held;
 static bool    swalt_sent;
 static uint8_t swe_swallowed; // bit per letter key whose release must be swallowed
 
-static uint16_t numlock_quiet_timer; // Num Lock sync ignores the host for a moment after an Alt code
+/* Alt codes need Num Lock on. The keyboard only knows Num Lock from the
+ * host's LED reports, and right after a (re)connect it hasn't had one yet, so
+ * it never trusts its own idea of the state: after toggling Num Lock it waits
+ * for the host to confirm the new state before typing the digits.
+ *
+ * Num Lock is switched back off a moment after the last letter (and only once
+ * no modifiers are held, so Ctrl+Num Lock can't turn into Pause). A burst like
+ * "åäö" then toggles Num Lock only once. */
+
+#ifndef ALTCODE_NUM_WAIT_MS
+#    define ALTCODE_NUM_WAIT_MS 250 // longest wait for the host to report Num Lock
+#endif
+#ifndef ALTCODE_RESTORE_MS
+#    define ALTCODE_RESTORE_MS 400 // Num Lock goes back off this long after the last letter
+#endif
+
+static bool     numlock_ours;          // we turned Num Lock on and still owe the host a toggle back
+static uint16_t numlock_ours_timer;    // last Alt code typed while numlock_ours
+static uint16_t numlock_restore_timer; // set while the toggle back is waiting for the host's report
+static uint16_t numlock_quiet_timer;   // Num Lock sync ignores the host for a moment after an Alt code
+static bool     numlock_unreported;    // the host didn't answer our Num Lock toggles: trust our own count
+
+static bool host_num_lock(void) {
+    __asm__ volatile("" ::: "memory"); // the LED state is written from an interrupt or the radio pump
+    return host_keyboard_led_state().num_lock;
+}
+
+// Waits up to ALTCODE_NUM_WAIT_MS for the host to report Num Lock as `want`.
+static bool wait_num_lock(bool want) {
+    uint16_t start = timer_read();
+    while (host_num_lock() != want) {
+        if (timer_elapsed(start) >= ALTCODE_NUM_WAIT_MS) return false;
+    ch582_task(); // Bluetooth/2.4G: lock LED reports arrive over the radio UART
+        wait_ms(1);
+    }
+    return true;
+}
+
+// Makes sure the host has Num Lock on, using its LED reports as the truth.
+static void num_lock_on_for_alt_code(void) {
+    // A toggle back is still in flight: let the host finish it first, or the
+    // digits could land while Num Lock is off and move the cursor instead.
+    if (numlock_restore_timer) {
+        wait_num_lock(false);
+        numlock_restore_timer = 0;
+    }
+    if (numlock_ours) return; // still on from the last letter
+    if (host_num_lock()) {    // the user's own Num Lock (game mode) is on
+        numlock_unreported = false;
+        return;
+    }
+
+    tap_code(KC_NUM);
+    if (wait_num_lock(true)) {
+        numlock_ours       = true; // it was off and is on now
+        numlock_unreported = false;
+        return;
+    }
+    // No "on" report. Either Num Lock was already on and the host hadn't said so
+    // yet (just after a reconnect), so our tap turned it off, or the host never
+    // reports lock LEDs. Toggle again: in the first case it is on and original.
+    tap_code(KC_NUM);
+    if (wait_num_lock(true)) {
+        numlock_unreported = false;
+        return;
+    }
+    // The host isn't reporting LEDs at all. Best guess, like before: it was off.
+    tap_code(KC_NUM);
+    numlock_ours       = true;
+    numlock_unreported = true;
+}
 
 static void send_alt_code(const char *digits) {
     numlock_quiet_timer = timer_read() | 1;
@@ -414,8 +485,7 @@ static void send_alt_code(const char *digits) {
     clear_weak_mods();
     send_keyboard_report();
 
-    bool numlock_off = !host_keyboard_led_state().num_lock;
-    if (numlock_off) tap_code(KC_NUM);
+    num_lock_on_for_alt_code();
 
     register_code(KC_LALT);
     for (const char *p = digits; *p; p++) {
@@ -423,12 +493,35 @@ static void send_alt_code(const char *digits) {
     }
     unregister_code(KC_LALT);
 
-    if (numlock_off) tap_code(KC_NUM);
+    numlock_ours_timer  = timer_read();
     numlock_quiet_timer = timer_read() | 1;
 
     set_mods(saved);
     set_weak_mods(weak);
     send_keyboard_report();
+}
+
+// Switches Num Lock back off once typing Swedish letters is over.
+static void altcode_task(void) {
+    if (numlock_restore_timer) {
+        if (!host_num_lock() || timer_elapsed(numlock_restore_timer) >= 1000) {
+            numlock_restore_timer = 0;
+            numlock_quiet_timer   = timer_read() | 1;
+        }
+        return;
+    }
+    if (!numlock_ours || timer_elapsed(numlock_ours_timer) < ALTCODE_RESTORE_MS) return;
+    if (!host_num_lock() && !numlock_unreported) {
+        // The host says off: the link dropped and it hasn't re-sent its LEDs yet,
+        // or something else switched Num Lock off. Toggling now could turn it on,
+        // so wait a few seconds for it to come back on, then let go.
+        if (timer_elapsed(numlock_ours_timer) >= 3000) numlock_ours = false;
+        return;
+    }
+    if (get_mods() || get_weak_mods()) return; // wait: Ctrl+Num Lock is Pause
+    tap_code(KC_NUM);
+    numlock_ours          = false;
+    numlock_restore_timer = numlock_unreported ? 0 : (timer_read() | 1);
 }
 
 // Returns the bit index for a Swedish letter key, or -1.
@@ -683,6 +776,12 @@ static void game_mode_set(bool on) {
 // can set it with SetNumLockState and the Game key just toggles Num Lock.
 static void game_mode_toggle(void) {
     if (cfg.game_flags & GAME_NUMLOCK) {
+        if (numlock_ours) {
+            // Num Lock is only on for Swedish letters and the real state is off:
+            // keep it on instead of toggling, and it becomes the game mode switch.
+            numlock_ours = false;
+            return;
+        }
         tap_code(KC_NUM);
     } else {
         game_mode_set(!game_mode);
@@ -691,6 +790,7 @@ static void game_mode_toggle(void) {
 
 static void numlock_sync_task(void) {
     if (!(cfg.game_flags & GAME_NUMLOCK)) return;
+    if (numlock_ours || numlock_restore_timer) return; // Num Lock is borrowed for Swedish letters
     if (numlock_quiet_timer) {
         if (timer_elapsed(numlock_quiet_timer) < 400) return;
         numlock_quiet_timer = 0;
@@ -856,6 +956,7 @@ static void deep_sleep_task(void) {
 }
 
 void housekeeping_task_user(void) {
+    altcode_task();
     pp_task();
     th_task();
     paint_task();
